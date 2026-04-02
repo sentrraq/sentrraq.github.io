@@ -397,6 +397,20 @@
     </div>
   </div>
 
+  <!-- PUBLISH LOG MODAL -->
+  <div id="publish-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);align-items:center;justify-content:center;">
+    <div style="background:#1c1c1e;border:1px solid #3a3a3c;border-radius:16px;padding:28px;width:90%;max-width:520px;max-height:80vh;display:flex;flex-direction:column;gap:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-weight:600;font-size:15px;color:#f5f5f7">📤 Publish ke GitHub</span>
+        <button id="publish-modal-close" style="background:none;border:none;color:#8e8e93;font-size:20px;cursor:pointer;padding:4px">×</button>
+      </div>
+      <div id="publish-log" style="font-family:monospace;font-size:12px;background:#000;border-radius:10px;padding:16px;overflow-y:auto;flex:1;min-height:200px;max-height:340px;line-height:1.8;color:#e5e5ea;white-space:pre-wrap;word-break:break-all"></div>
+      <div id="publish-modal-footer" style="display:none;gap:10px;justify-content:flex-end">
+        <button id="publish-modal-ok" style="background:#0071e3;color:#fff;border:none;padding:10px 24px;border-radius:8px;font-size:14px;cursor:pointer;font-weight:500">OK</button>
+      </div>
+    </div>
+  </div>
+
   <div class="main-area">
     <!-- Sidebar -->
     <aside class="sidebar">
@@ -1069,95 +1083,143 @@ function initPublish(){
   document.getElementById('publish-btn').addEventListener('click', publishToGitHub);
 }
 
+/* ── PUBLISH HELPERS ── */
+var GH_HEADERS = function(token){ return { Authorization:'Bearer '+token, Accept:'application/vnd.github.v3+json', 'Content-Type':'application/json' }; };
+
+// Safe base64 encode for any UTF-8 string (chunked to avoid stack overflow)
+function safeBase64(str){
+  var bytes = new TextEncoder().encode(str);
+  var bin = ''; var chunk = 8192;
+  for(var i=0;i<bytes.length;i+=chunk) bin += String.fromCharCode.apply(null, bytes.subarray(i,i+chunk));
+  return btoa(bin);
+}
+
+// Log line to publish modal
+function plog(msg, color){
+  var el = document.getElementById('publish-log');
+  var line = document.createElement('div');
+  line.style.color = color||'#e5e5ea';
+  line.textContent = msg;
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+}
+
+function showPublishModal(){
+  var m = document.getElementById('publish-modal');
+  document.getElementById('publish-log').textContent='';
+  document.getElementById('publish-modal-footer').style.display='none';
+  m.style.display='flex';
+}
+function closePublishModal(){
+  document.getElementById('publish-modal').style.display='none';
+}
+document.getElementById('publish-modal-close').addEventListener('click', closePublishModal);
+document.getElementById('publish-modal-ok').addEventListener('click', closePublishModal);
+
+async function ghPut(token, apiUrl, body, stepName){
+  plog('  PUT '+apiUrl.replace('https://api.github.com',''));
+  var r = await fetch(apiUrl,{ method:'PUT', headers:GH_HEADERS(token), body:JSON.stringify(body) });
+  var data; try{ data = await r.json(); } catch(e){ data={}; }
+  if(r.ok){
+    plog('  ✓ '+stepName+' ('+r.status+')', '#30d158');
+  } else {
+    plog('  ✗ HTTP '+r.status+' — '+(data.message||'unknown'), '#ff453a');
+    if(data.errors) plog('    errors: '+JSON.stringify(data.errors), '#ff9f0a');
+    plog('  URL: '+apiUrl, '#8e8e93');
+    plog('  Branch: '+body.branch, '#8e8e93');
+    plog('  SHA sent: '+(body.sha||'(none — new file)'), '#8e8e93');
+    throw new Error('HTTP '+r.status+' pada '+stepName+': '+(data.message||'unknown'));
+  }
+  return data;
+}
+
+async function ghGetSha(token, apiUrl, branch){
+  var r = await fetch(apiUrl+'?ref='+branch, { headers:GH_HEADERS(token) });
+  if(r.ok){ var d = await r.json(); plog('  SHA: '+d.sha.substring(0,12), '#8e8e93'); return d.sha; }
+  if(r.status===404){ plog('  (file belum ada — akan dibuat baru)', '#8e8e93'); return null; }
+  var d; try{d=await r.json();}catch(e){d={};}
+  throw new Error('GET SHA gagal HTTP '+r.status+': '+(d.message||''));
+}
+
 async function uploadImageToGitHub(token, user, repo, branch, filename, dataUrl){
-  var mime = dataUrl.split(';')[0].split(':')[1];
-  var b64  = dataUrl.split(',')[1];
+  var b64 = dataUrl.split(',')[1];
+  if(!b64) throw new Error('Format data URL tidak valid');
   var apiUrl = 'https://api.github.com/repos/'+user+'/'+repo+'/contents/assets/images/'+filename;
-  var body = { message:'Upload image: '+filename, content:b64, branch:branch };
-  // Check if file exists
-  var check = await fetch(apiUrl+'?ref='+branch, { headers:{Authorization:'Bearer '+token,'Accept':'application/vnd.github.v3+json'} });
-  if(check.ok){ var d = await check.json(); body.sha = d.sha; }
-  var r = await fetch(apiUrl, { method:'PUT', headers:{Authorization:'Bearer '+token,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'}, body:JSON.stringify(body) });
-  if(!r.ok){ var e = await r.json(); throw new Error('Upload gambar gagal: '+(e.message||r.status)); }
+  plog('\n[Gambar] '+filename);
+  var sha = await ghGetSha(token, apiUrl, branch);
+  var body = { message:'img: '+filename, content:b64, branch:branch };
+  if(sha) body.sha = sha;
+  await ghPut(token, apiUrl, body, 'upload '+filename);
   return 'https://raw.githubusercontent.com/'+user+'/'+repo+'/'+branch+'/assets/images/'+filename;
 }
 
 async function publishToGitHub(){
-  var token  = localStorage.getItem(GH_TOKEN_KEY);
-  var user   = localStorage.getItem(GH_USER_KEY);
-  var repo   = localStorage.getItem(GH_REPO_KEY);
-  var branch = localStorage.getItem(GH_BRANCH_KEY)||'main';
+  var token  = (localStorage.getItem(GH_TOKEN_KEY)||'').trim();
+  var user   = (localStorage.getItem(GH_USER_KEY)||'').trim();
+  var repo   = (localStorage.getItem(GH_REPO_KEY)||'').trim();
+  var branch = (localStorage.getItem(GH_BRANCH_KEY)||'main').trim();
 
-  if(!token||!user||!repo){
-    toast('Set GitHub token dulu di menu Pengaturan'); return;
-  }
+  if(!token||!user||!repo){ toast('Set GitHub token dulu di Pengaturan'); return; }
 
   var btn = document.getElementById('publish-btn');
-  btn.textContent='Mempublish…'; btn.disabled=true;
+  btn.disabled=true; btn.textContent='Mempublish…';
+  showPublishModal();
+
+  plog('Repo : '+user+'/'+repo);
+  plog('Branch: '+branch);
+  plog('Token : '+token.substring(0,8)+'…');
+  plog('─'.repeat(48), '#3a3a3c');
 
   try{
-    // Step 1: upload any base64 images first
-    toast('Mengupload gambar…');
-    var uploadedProducts = JSON.parse(JSON.stringify(products)); // deep copy
-    for(var i=0; i<uploadedProducts.length; i++){
-      var p = uploadedProducts[i];
-      if(!p.images) continue;
-      for(var j=0; j<p.images.length; j++){
-        var img = p.images[j];
-        if(img && img.startsWith('data:')){
-          var ext = img.includes('image/png')?'png':img.includes('image/webp')?'webp':'jpg';
-          var filename = (p.id||'product-'+i)+'-'+(j+1)+'.'+ext;
-          var url = await uploadImageToGitHub(token, user, repo, branch, filename, img);
-          uploadedProducts[i].images[j] = url;
+    // Step 1: upload data-URL images
+    var hasDataImg = products.some(function(p){ return (p.images||[]).some(function(i){ return i&&i.startsWith('data:'); }); });
+    var uploadedProducts = JSON.parse(JSON.stringify(products));
+
+    if(hasDataImg){
+      plog('\n[Step 1] Upload gambar dari device…', '#ffd60a');
+      for(var i=0;i<uploadedProducts.length;i++){
+        var p = uploadedProducts[i];
+        if(!p.images) continue;
+        for(var j=0;j<p.images.length;j++){
+          var img = p.images[j];
+          if(img && img.startsWith('data:')){
+            var ext = img.includes('image/png')?'png':img.includes('image/webp')?'webp':'jpg';
+            var fname = (p.id||'product-'+i)+'-'+(j+1)+'.'+ext;
+            var url = await uploadImageToGitHub(token, user, repo, branch, fname, img);
+            uploadedProducts[i].images[j] = url;
+          }
         }
       }
+      products = uploadedProducts; saveProducts(products); renderTable();
+    } else {
+      plog('\n[Step 1] Tidak ada gambar device → skip', '#8e8e93');
     }
 
     // Step 2: publish products.json
-    toast('Mempublish produk…');
+    plog('\n[Step 2] Publish products.json…', '#ffd60a');
     var content = JSON.stringify({products:uploadedProducts},null,2);
-    var b64 = btoa(String.fromCharCode(...new Uint8Array(new TextEncoder().encode(content))));
+    plog('  JSON size: '+Math.round(content.length/1024)+'KB ('+uploadedProducts.length+' produk)');
+    var b64 = safeBase64(content);
     var apiUrl = 'https://api.github.com/repos/'+user+'/'+repo+'/contents/products.json';
+    var sha = await ghGetSha(token, apiUrl, branch);
+    var body = { message:'Update catalog via Sentraq Admin', content:b64, branch:branch };
+    if(sha) body.sha = sha;
+    await ghPut(token, apiUrl, body, 'products.json');
 
-    var body = { message:'Update products catalog via Sentraq Admin', content:b64, branch:branch };
-
-    var existing = await fetch(apiUrl+'?ref='+branch, {
-      headers:{Authorization:'Bearer '+token,'Accept':'application/vnd.github.v3+json'}
-    });
-    if(existing.ok){
-      var eData = await existing.json();
-      body.sha = eData.sha;
-    } else if(existing.status !== 404){
-      var eErr = await existing.json();
-      throw new Error('Cek repo gagal ('+ existing.status +'): '+(eErr.message||'unknown'));
-    }
-
-    var r = await fetch(apiUrl,{
-      method:'PUT',
-      headers:{Authorization:'Bearer '+token,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'},
-      body:JSON.stringify(body)
-    });
-
-    if(r.ok){
-      // Update local products with uploaded image URLs
-      products = uploadedProducts;
-      saveProducts(products);
-      renderTable();
-      toast('✓ Published! Website update dalam ~30 detik');
-    } else {
-      var err = await r.json();
-      var hint = '';
-      if(r.status===401) hint = ' — Token tidak valid atau expired. Buat token baru di github.com/settings/tokens';
-      else if(r.status===403) hint = ' — Token tidak punya izin write. Pastikan scope "repo" atau "public_repo" dicentang';
-      else if(r.status===404) hint = ' — File tidak ditemukan di branch "'+branch+'". Pastikan branch benar (coba: main atau master)';
-      else if(r.status===409) hint = ' — Konflik SHA. Coba publish lagi.';
-      else if(r.status===422) hint = ' — Data tidak valid: '+((err.errors&&err.errors[0]&&err.errors[0].message)||'cek format produk');
-      throw new Error('('+ r.status +') '+(err.message||'Unknown error')+hint);
-    }
+    plog('\n✓ SELESAI! Website update dalam ~30-60 detik.', '#30d158');
+    plog('  Buka: https://'+user+'.github.io', '#30d158');
+    document.getElementById('publish-modal-footer').style.display='flex';
+    toast('✓ Published!');
   } catch(e){
-    toast('✗ '+e.message);
+    plog('\n✗ GAGAL: '+e.message, '#ff453a');
+    plog('\nSolusi umum:', '#ffd60a');
+    plog('• 401 = token expired, buat baru di github.com/settings/tokens', '#8e8e93');
+    plog('• 403 = token perlu scope "repo" atau "public_repo"', '#8e8e93');
+    plog('• 404 = cek nama repo dan branch (main vs master)', '#8e8e93');
+    plog('• 422 = SHA konflik, coba publish lagi', '#8e8e93');
+    document.getElementById('publish-modal-footer').style.display='flex';
   } finally {
-    btn.textContent='Publish ke GitHub'; btn.disabled=false;
+    btn.disabled=false; btn.textContent='Publish ke GitHub';
   }
 }
 
