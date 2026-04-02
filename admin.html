@@ -912,6 +912,7 @@ document.getElementById('img-upload-btn').addEventListener('click', function(){
 // Compress image via Canvas before storing (target < 800KB, max 1200px)
 function compressImage(file){
   return new Promise(function(resolve){
+    var isPng = file.type === 'image/png';
     var reader = new FileReader();
     reader.onload = function(e){
       var img = new Image();
@@ -923,11 +924,28 @@ function compressImage(file){
         var canvas = document.createElement('canvas');
         canvas.width = w; canvas.height = h;
         canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        // Try quality 0.82 → if still >700KB drop to 0.65
-        var dataUrl = canvas.toDataURL('image/jpeg', 0.82);
-        if(dataUrl.length > 950000) dataUrl = canvas.toDataURL('image/jpeg', 0.65);
-        if(dataUrl.length > 950000) dataUrl = canvas.toDataURL('image/jpeg', 0.50);
-        resolve({ dataUrl: dataUrl, w: w, h: h, kb: Math.round(dataUrl.length * 0.75 / 1024) });
+
+        var dataUrl;
+        if(isPng){
+          // Keep PNG (supports transparency), no lossy compression
+          dataUrl = canvas.toDataURL('image/png');
+          // If PNG too large (>900KB), convert to WebP or JPEG
+          if(dataUrl.length > 1200000){
+            dataUrl = canvas.toDataURL('image/webp', 0.85);
+            if(dataUrl === 'data:,' || dataUrl.length < 100) // WebP not supported
+              dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+          }
+        } else {
+          // JPEG/WebP: try WebP first (smaller), fallback to JPEG
+          dataUrl = canvas.toDataURL('image/webp', 0.85);
+          if(dataUrl === 'data:,' || dataUrl.length < 100)
+            dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+          if(dataUrl.length > 950000) dataUrl = canvas.toDataURL('image/jpeg', 0.65);
+          if(dataUrl.length > 950000) dataUrl = canvas.toDataURL('image/jpeg', 0.50);
+        }
+
+        var fmt = dataUrl.split(';')[0].split('/')[1].toUpperCase();
+        resolve({ dataUrl: dataUrl, w: w, h: h, kb: Math.round(dataUrl.length * 0.75 / 1024), fmt: fmt });
       };
       img.src = e.target.result;
     };
@@ -943,8 +961,8 @@ document.getElementById('img-file-input').addEventListener('change', async funct
     toast('Mengkompresi '+file.name+'…');
     try{
       var result = await compressImage(file);
-      addImgRow(result.dataUrl, result.w+'×'+result.h+' · '+result.kb+'KB');
-      toast('✓ '+file.name+' → '+result.kb+'KB');
+      addImgRow(result.dataUrl, result.fmt+' · '+result.w+'×'+result.h+' · '+result.kb+'KB');
+      toast('✓ '+file.name+' → '+result.fmt+' '+result.kb+'KB');
     } catch(e){
       toast('✗ Gagal proses '+file.name+': '+e.message);
     }
