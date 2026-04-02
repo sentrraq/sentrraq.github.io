@@ -954,21 +954,41 @@ document.getElementById('test-gh-btn').addEventListener('click', async function(
   var token  = localStorage.getItem(GH_TOKEN_KEY);
   var user   = localStorage.getItem(GH_USER_KEY);
   var repo   = localStorage.getItem(GH_REPO_KEY);
+  var branch = localStorage.getItem(GH_BRANCH_KEY)||'main';
   if(!token||!user||!repo){ toast('Simpan pengaturan dulu'); return; }
   statusEl.textContent='Menghubungkan ke GitHub…';
   statusEl.className='publish-status loading show';
   try{
+    // Step 1: cek repo exist
     var r = await fetch('https://api.github.com/repos/'+user+'/'+repo,{
-      headers:{Authorization:'token '+token,'Accept':'application/vnd.github.v3+json'}
+      headers:{Authorization:'Bearer '+token,'Accept':'application/vnd.github.v3+json'}
     });
-    if(r.ok){
-      var d = await r.json();
-      statusEl.textContent='✓ Terhubung: '+d.full_name+' ('+d.visibility+')';
-      statusEl.className='publish-status ok show';
-    } else {
-      statusEl.textContent='✗ Gagal: '+r.status+' '+r.statusText;
-      statusEl.className='publish-status err show';
+    if(!r.ok){
+      var msg = r.status===404?'Repo tidak ditemukan — cek username & repo name':r.status===401?'Token tidak valid':'Error '+r.status;
+      statusEl.textContent='✗ '+msg; statusEl.className='publish-status err show'; return;
     }
+    var d = await r.json();
+
+    // Step 2: cek write access ke contents
+    var contentsUrl = 'https://api.github.com/repos/'+user+'/'+repo+'/contents/products.json?ref='+branch;
+    var cr = await fetch(contentsUrl,{
+      headers:{Authorization:'Bearer '+token,'Accept':'application/vnd.github.v3+json'}
+    });
+    if(cr.status===403||cr.status===401){
+      statusEl.textContent='✗ Token tidak punya izin baca/tulis file. Pastikan token punya scope "repo" atau "public_repo" (classic), atau "Contents: Read & write" (fine-grained).';
+      statusEl.className='publish-status err show'; return;
+    }
+
+    var writeHint = '';
+    if(cr.ok){
+      var cd = await cr.json();
+      writeHint = ' · products.json SHA: '+cd.sha.substring(0,7);
+    } else if(cr.status===404){
+      writeHint = ' · products.json belum ada di repo (akan dibuat saat publish)';
+    }
+
+    statusEl.textContent='✓ Terhubung: '+d.full_name+' ('+d.visibility+')'+writeHint;
+    statusEl.className='publish-status ok show';
   } catch(e){
     statusEl.textContent='✗ Error: '+e.message;
     statusEl.className='publish-status err show';
@@ -986,9 +1006,9 @@ async function uploadImageToGitHub(token, user, repo, branch, filename, dataUrl)
   var apiUrl = 'https://api.github.com/repos/'+user+'/'+repo+'/contents/assets/images/'+filename;
   var body = { message:'Upload image: '+filename, content:b64, branch:branch };
   // Check if file exists
-  var check = await fetch(apiUrl+'?ref='+branch, { headers:{Authorization:'token '+token,'Accept':'application/vnd.github.v3+json'} });
+  var check = await fetch(apiUrl+'?ref='+branch, { headers:{Authorization:'Bearer '+token,'Accept':'application/vnd.github.v3+json'} });
   if(check.ok){ var d = await check.json(); body.sha = d.sha; }
-  var r = await fetch(apiUrl, { method:'PUT', headers:{Authorization:'token '+token,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'}, body:JSON.stringify(body) });
+  var r = await fetch(apiUrl, { method:'PUT', headers:{Authorization:'Bearer '+token,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'}, body:JSON.stringify(body) });
   if(!r.ok){ var e = await r.json(); throw new Error('Upload gambar gagal: '+(e.message||r.status)); }
   return 'https://raw.githubusercontent.com/'+user+'/'+repo+'/'+branch+'/assets/images/'+filename;
 }
@@ -1027,13 +1047,13 @@ async function publishToGitHub(){
     // Step 2: publish products.json
     toast('Mempublish produk…');
     var content = JSON.stringify({products:uploadedProducts},null,2);
-    var b64 = btoa(unescape(encodeURIComponent(content)));
+    var b64 = btoa(String.fromCharCode(...new Uint8Array(new TextEncoder().encode(content))));
     var apiUrl = 'https://api.github.com/repos/'+user+'/'+repo+'/contents/products.json';
 
     var body = { message:'Update products catalog via Sentraq Admin', content:b64, branch:branch };
 
     var existing = await fetch(apiUrl+'?ref='+branch, {
-      headers:{Authorization:'token '+token,'Accept':'application/vnd.github.v3+json'}
+      headers:{Authorization:'Bearer '+token,'Accept':'application/vnd.github.v3+json'}
     });
     if(existing.ok){
       var eData = await existing.json();
@@ -1045,7 +1065,7 @@ async function publishToGitHub(){
 
     var r = await fetch(apiUrl,{
       method:'PUT',
-      headers:{Authorization:'token '+token,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'},
+      headers:{Authorization:'Bearer '+token,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'},
       body:JSON.stringify(body)
     });
 
@@ -1058,10 +1078,11 @@ async function publishToGitHub(){
     } else {
       var err = await r.json();
       var hint = '';
-      if(r.status===401) hint = ' — Token tidak valid atau expired';
-      else if(r.status===403) hint = ' — Token tidak punya akses ke repo ini';
-      else if(r.status===404) hint = ' — Repo tidak ditemukan. Cek username & nama repo di Pengaturan';
-      else if(r.status===422) hint = ' — Konflik file. Coba lagi.';
+      if(r.status===401) hint = ' — Token tidak valid atau expired. Buat token baru di github.com/settings/tokens';
+      else if(r.status===403) hint = ' — Token tidak punya izin write. Pastikan scope "repo" atau "public_repo" dicentang';
+      else if(r.status===404) hint = ' — File tidak ditemukan di branch "'+branch+'". Pastikan branch benar (coba: main atau master)';
+      else if(r.status===409) hint = ' — Konflik SHA. Coba publish lagi.';
+      else if(r.status===422) hint = ' — Data tidak valid: '+((err.errors&&err.errors[0]&&err.errors[0].message)||'cek format produk');
       throw new Error('('+ r.status +') '+(err.message||'Unknown error')+hint);
     }
   } catch(e){
