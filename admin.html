@@ -247,9 +247,8 @@
 
     /* Image URL list */
     .img-list{display:flex;flex-direction:column;gap:8px;margin-bottom:8px}
-    .img-row{display:flex;gap:8px;align-items:center}
-    .img-row input{flex:1;padding:8px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--text);font-size:13px;outline:none;transition:border-color 0.15s}
-    .img-row input:focus{border-color:var(--accent)}
+    .img-row{display:flex;gap:8px;align-items:center;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-sm);padding:6px 8px}
+    .img-row input{flex:1;padding:4px 8px;background:transparent;border:none;color:var(--text);font-size:13px;outline:none;}
     .img-del{
       width:28px;height:28px;border-radius:6px;
       background:rgba(255,69,58,0.1);border:none;color:var(--red);
@@ -589,13 +588,20 @@
       </div>
 
       <div class="field">
-        <label class="field-label">URL Foto Produk</label>
-        <p class="field-hint" style="margin-bottom:10px">Paste URL foto dari Google Drive, ImgBB, Cloudinary, atau link direct image.</p>
+        <label class="field-label">Foto Produk</label>
+        <p class="field-hint" style="margin-bottom:10px">Upload dari device atau paste URL gambar.</p>
         <div class="img-list" id="img-list"></div>
-        <button class="img-add" id="img-add-btn">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          Tambah URL Foto
-        </button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
+          <button class="img-add" id="img-upload-btn" type="button">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Pilih dari Device
+          </button>
+          <button class="img-add" id="img-add-btn" type="button">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Tambah URL
+          </button>
+        </div>
+        <input type="file" id="img-file-input" accept="image/jpeg,image/jpg,image/png,image/webp" multiple style="display:none">
       </div>
 
       <div class="field">
@@ -849,10 +855,29 @@ function addImgRow(url){
   var list = document.getElementById('img-list');
   var row  = document.createElement('div');
   row.className = 'img-row';
+
+  // Thumbnail preview
+  if(url && (url.startsWith('data:') || url.startsWith('http'))){
+    var thumb = document.createElement('img');
+    thumb.src = url;
+    thumb.style.cssText = 'width:44px;height:44px;object-fit:cover;border-radius:6px;flex-shrink:0;border:1px solid rgba(255,255,255,0.1)';
+    row.appendChild(thumb);
+  }
+
   var input = document.createElement('input');
   input.type = 'text';
   input.placeholder = 'https://example.com/foto.jpg';
   input.value = typeof url === 'string' ? url : '';
+  input.style.flex = '1';
+  // Update thumb on change
+  input.addEventListener('input', function(){
+    var t = row.querySelector('img');
+    if(this.value.startsWith('http')){
+      if(!t){ t = document.createElement('img'); t.style.cssText='width:44px;height:44px;object-fit:cover;border-radius:6px;flex-shrink:0;border:1px solid rgba(255,255,255,0.1)'; row.prepend(t); }
+      t.src = this.value;
+    }
+  });
+
   var del = document.createElement('button');
   del.className = 'img-del';
   del.type = 'button';
@@ -860,8 +885,21 @@ function addImgRow(url){
   del.addEventListener('click',function(){ row.remove(); });
   row.appendChild(input); row.appendChild(del);
   list.appendChild(row);
-  input.focus();
+  if(!url) input.focus();
 }
+
+// Upload dari device
+document.getElementById('img-upload-btn').addEventListener('click', function(){
+  document.getElementById('img-file-input').click();
+});
+document.getElementById('img-file-input').addEventListener('change', function(){
+  Array.from(this.files).forEach(function(file){
+    var reader = new FileReader();
+    reader.onload = function(e){ addImgRow(e.target.result); };
+    reader.readAsDataURL(file);
+  });
+  this.value = ''; // reset so same file can be re-selected
+});
 
 document.getElementById('form-save').addEventListener('click',function(){
   var name  = document.getElementById('form-name').value.trim();
@@ -942,6 +980,19 @@ function initPublish(){
   document.getElementById('publish-btn').addEventListener('click', publishToGitHub);
 }
 
+async function uploadImageToGitHub(token, user, repo, branch, filename, dataUrl){
+  var mime = dataUrl.split(';')[0].split(':')[1];
+  var b64  = dataUrl.split(',')[1];
+  var apiUrl = 'https://api.github.com/repos/'+user+'/'+repo+'/contents/assets/images/'+filename;
+  var body = { message:'Upload image: '+filename, content:b64, branch:branch };
+  // Check if file exists
+  var check = await fetch(apiUrl+'?ref='+branch, { headers:{Authorization:'token '+token,'Accept':'application/vnd.github.v3+json'} });
+  if(check.ok){ var d = await check.json(); body.sha = d.sha; }
+  var r = await fetch(apiUrl, { method:'PUT', headers:{Authorization:'token '+token,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'}, body:JSON.stringify(body) });
+  if(!r.ok){ var e = await r.json(); throw new Error('Upload gambar gagal: '+(e.message||r.status)); }
+  return 'https://raw.githubusercontent.com/'+user+'/'+repo+'/'+branch+'/assets/images/'+filename;
+}
+
 async function publishToGitHub(){
   var token  = localStorage.getItem(GH_TOKEN_KEY);
   var user   = localStorage.getItem(GH_USER_KEY);
@@ -949,31 +1000,47 @@ async function publishToGitHub(){
   var branch = localStorage.getItem(GH_BRANCH_KEY)||'main';
 
   if(!token||!user||!repo){
-    toast('Set GitHub token dulu di menu Pengaturan');
-    return;
+    toast('Set GitHub token dulu di menu Pengaturan'); return;
   }
 
   var btn = document.getElementById('publish-btn');
   btn.textContent='Mempublish…'; btn.disabled=true;
 
   try{
-    var content = JSON.stringify({products:products},null,2);
-    var b64 = btoa(unescape(encodeURIComponent(content)));
-    var path = 'products.json';
-    var apiUrl = 'https://api.github.com/repos/'+user+'/'+repo+'/contents/'+path;
+    // Step 1: upload any base64 images first
+    toast('Mengupload gambar…');
+    var uploadedProducts = JSON.parse(JSON.stringify(products)); // deep copy
+    for(var i=0; i<uploadedProducts.length; i++){
+      var p = uploadedProducts[i];
+      if(!p.images) continue;
+      for(var j=0; j<p.images.length; j++){
+        var img = p.images[j];
+        if(img && img.startsWith('data:')){
+          var ext = img.includes('image/png')?'png':img.includes('image/webp')?'webp':'jpg';
+          var filename = (p.id||'product-'+i)+'-'+(j+1)+'.'+ext;
+          var url = await uploadImageToGitHub(token, user, repo, branch, filename, img);
+          uploadedProducts[i].images[j] = url;
+        }
+      }
+    }
 
-    // Get current SHA
+    // Step 2: publish products.json
+    toast('Mempublish produk…');
+    var content = JSON.stringify({products:uploadedProducts},null,2);
+    var b64 = btoa(unescape(encodeURIComponent(content)));
+    var apiUrl = 'https://api.github.com/repos/'+user+'/'+repo+'/contents/products.json';
+
+    var body = { message:'Update products catalog via Sentraq Admin', content:b64, branch:branch };
+
     var existing = await fetch(apiUrl+'?ref='+branch, {
       headers:{Authorization:'token '+token,'Accept':'application/vnd.github.v3+json'}
     });
-    var body = {
-      message:'Update products catalog via Sentraq Admin',
-      content:b64,
-      branch:branch
-    };
     if(existing.ok){
       var eData = await existing.json();
       body.sha = eData.sha;
+    } else if(existing.status !== 404){
+      var eErr = await existing.json();
+      throw new Error('Cek repo gagal ('+ existing.status +'): '+(eErr.message||'unknown'));
     }
 
     var r = await fetch(apiUrl,{
@@ -983,13 +1050,22 @@ async function publishToGitHub(){
     });
 
     if(r.ok){
-      toast('✓ Published! Website akan update dalam ~30 detik');
+      // Update local products with uploaded image URLs
+      products = uploadedProducts;
+      saveProducts(products);
+      renderTable();
+      toast('✓ Published! Website update dalam ~30 detik');
     } else {
       var err = await r.json();
-      toast('✗ Gagal: '+(err.message||r.status));
+      var hint = '';
+      if(r.status===401) hint = ' — Token tidak valid atau expired';
+      else if(r.status===403) hint = ' — Token tidak punya akses ke repo ini';
+      else if(r.status===404) hint = ' — Repo tidak ditemukan. Cek username & nama repo di Pengaturan';
+      else if(r.status===422) hint = ' — Konflik file. Coba lagi.';
+      throw new Error('('+ r.status +') '+(err.message||'Unknown error')+hint);
     }
   } catch(e){
-    toast('✗ Error: '+e.message);
+    toast('✗ '+e.message);
   } finally {
     btn.textContent='Publish ke GitHub'; btn.disabled=false;
   }
