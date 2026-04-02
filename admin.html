@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sentraq Admin</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230071e3'/><text y='.88em' font-size='88' x='16' fill='white' font-family='-apple-system,sans-serif' font-weight='700'>S</text></svg>">
+  <style>
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+    :root{
+      --bg:#0a0a0b;--bg2:#111113;--bg3:#1c1c1e;--bg4:#2c2c2e;
+      --border:#3a3a3c;--border2:#48484a;
+      --text:#ffffff;--text2:#ebebf0;--text3:#98989f;--text4:#636366;
+      --accent:#0071e3;--accent-h:#0077ed;
+      --green:#32d74b;--red:#ff453a;--yellow:#ffd60a;
+      --r:12px;--r-sm:8px;
+    }
+    html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.5}
+    a{color:inherit;text-decoration:none}
+    button{font-family:inherit;cursor:pointer}
+    input,textarea,select{font-family:inherit}
+    ul{list-style:none}
+
+    /* ── LOGIN ── */
+    #login-screen{
+      position:fixed;inset:0;
+      display:flex;align-items:center;justify-content:center;
+      background:var(--bg);z-index:1000;
+      transition:opacity 0.3s ease;
+    }
+    #login-screen.hidden{opacity:0;pointer-events:none}
+    .login-box{
+      width:100%;max-width:380px;padding:0 24px;
+      display:flex;flex-direction:column;align-items:center;gap:0;
+    }
+    .login-logo{
+      width:64px;height:64px;border-radius:18px;
+      background:var(--accent);display:flex;align-items:center;justify-content:center;
+      font-size:36px;font-weight:700;color:#fff;margin-bottom:28px;
+    }
+    .login-box h1{font-size:24px;font-weight:600;margin-bottom:6px;text-align:center}
+    .login-box p{font-size:14px;color:var(--text3);margin-bottom:32px;text-align:center}
+    .login-field{width:100%;margin-bottom:12px}
+    .login-field input{
+      width:100%;padding:13px 16px;
+      background:var(--bg3);border:1px solid var(--border);
+      border-radius:var(--r);color:var(--text);font-size:15px;
+      outline:none;transition:border-color 0.15s;
+    }
+    .login-field input:focus{border-color:var(--accent)}
+    .login-submit{
+      width:100%;padding:13px;margin-top:4px;
+      background:var(--accent);color:#fff;
+      border:none;border-radius:var(--r);
+      font-size:15px;font-weight:500;cursor:pointer;
+      transition:background 0.15s,transform 0.1s;
+    }
+    .login-submit:hover{background:var(--accent-h)}
+    .login-submit:active{transform:scale(0.98)}
+    .login-error{
+      font-size:13px;color:var(--red);text-align:center;
+      margin-top:12px;min-height:18px;
+    }
+
+    /* ── LAYOUT ── */
+    #app{display:none;height:100vh;overflow:hidden;flex-direction:column}
+    #app.visible{display:flex}
+
+    /* Top bar */
+    .topbar{
+      height:52px;
+      display:flex;align-items:center;justify-content:space-between;
+      padding:0 24px;
+      background:var(--bg2);
+      border-bottom:1px solid var(--border);
+      flex-shrink:0;
+    }
+    .topbar-left{display:flex;align-items:center;gap:12px}
+    .topbar-logo{font-size:16px;font-weight:700;letter-spacing:-0.02em}
+    .topbar-badge{
+      font-size:10px;font-weight:600;padding:2px 8px;
+      border-radius:6px;background:rgba(0,113,227,0.18);color:var(--accent);
+      text-transform:uppercase;letter-spacing:0.06em;
+    }
+    .topbar-right{display:flex;align-items:center;gap:10px}
+    .topbar-btn{
+      padding:6px 14px;border-radius:8px;font-size:13px;font-weight:500;
+      cursor:pointer;border:none;transition:background 0.15s;
+    }
+    .topbar-btn-ghost{background:var(--bg3);color:var(--text2)}
+    .topbar-btn-ghost:hover{background:var(--bg4)}
+    .topbar-btn-primary{background:var(--accent);color:#fff}
+    .topbar-btn-primary:hover{background:var(--accent-h)}
+
+    /* Main area */
+    .main-area{display:flex;flex:1;overflow:hidden}
+
+    /* Sidebar */
+    .sidebar{
+      width:200px;flex-shrink:0;
+      background:var(--bg2);
+      border-right:1px solid var(--border);
+      padding:16px 12px;
+      overflow-y:auto;
+    }
+    .sidebar-section{margin-bottom:24px}
+    .sidebar-label{
+      font-size:11px;font-weight:600;color:var(--text4);
+      text-transform:uppercase;letter-spacing:0.06em;
+      padding:0 10px;margin-bottom:6px;
+    }
+    .sidebar-item{
+      display:flex;align-items:center;gap:9px;
+      padding:8px 10px;border-radius:8px;
+      font-size:13px;font-weight:500;color:var(--text3);
+      cursor:pointer;transition:background 0.12s,color 0.12s;
+      border:none;background:none;width:100%;text-align:left;
+    }
+    .sidebar-item:hover{background:var(--bg3);color:var(--text2)}
+    .sidebar-item.active{background:var(--bg3);color:var(--text)}
+    .sidebar-item svg{flex-shrink:0}
+
+    /* Content panel */
+    .content{flex:1;overflow-y:auto;padding:28px 32px;background:var(--bg)}
+
+    /* ── CARDS ── */
+    .stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:28px}
+    .stat-card{
+      background:var(--bg2);border:1px solid var(--border);
+      border-radius:var(--r);padding:20px;
+    }
+    .stat-label{font-size:11px;color:var(--text4);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px}
+    .stat-value{font-size:28px;font-weight:700;color:var(--text);letter-spacing:-0.02em}
+    .stat-sub{font-size:12px;color:var(--text3);margin-top:4px}
+
+    /* ── TABLE ── */
+    .table-header{
+      display:flex;align-items:center;justify-content:space-between;
+      margin-bottom:16px;
+    }
+    .table-title{font-size:17px;font-weight:600;color:var(--text)}
+    .add-btn{
+      display:flex;align-items:center;gap:6px;
+      padding:8px 16px;background:var(--accent);color:#fff;
+      border:none;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;
+      transition:background 0.15s;
+    }
+    .add-btn:hover{background:var(--accent-h)}
+
+    .product-table{
+      width:100%;border-collapse:collapse;
+      background:var(--bg2);border-radius:var(--r);overflow:hidden;
+      border:1px solid var(--border);
+    }
+    .product-table th{
+      padding:11px 16px;text-align:left;
+      font-size:11px;font-weight:600;color:var(--text4);
+      text-transform:uppercase;letter-spacing:0.06em;
+      background:var(--bg3);border-bottom:1px solid var(--border);
+    }
+    .product-table td{
+      padding:14px 16px;
+      font-size:13px;color:var(--text2);
+      border-bottom:1px solid var(--border);
+      vertical-align:middle;
+    }
+    .product-table tr:last-child td{border-bottom:none}
+    .product-table tr:hover td{background:rgba(255,255,255,0.02)}
+
+    .tbl-name{font-weight:500;color:var(--text)}
+    .tbl-cat{
+      display:inline-block;font-size:11px;font-weight:600;
+      padding:2px 8px;border-radius:6px;
+      background:rgba(0,113,227,0.15);color:var(--accent);
+      text-transform:uppercase;letter-spacing:0.04em;
+    }
+    .tbl-price{font-weight:600;color:var(--text);font-variant-numeric:tabular-nums}
+    .tbl-avail-yes{color:var(--green);font-weight:500}
+    .tbl-avail-no{color:var(--red);font-weight:500}
+    .tbl-actions{display:flex;gap:6px}
+    .tbl-btn{
+      padding:5px 12px;border-radius:6px;font-size:12px;font-weight:500;
+      cursor:pointer;border:none;transition:background 0.12s;
+    }
+    .tbl-btn-edit{background:var(--bg4);color:var(--text2)}
+    .tbl-btn-edit:hover{background:var(--border2)}
+    .tbl-btn-del{background:rgba(255,69,58,0.12);color:var(--red)}
+    .tbl-btn-del:hover{background:rgba(255,69,58,0.22)}
+
+    .table-empty{
+      text-align:center;padding:48px;color:var(--text3);font-size:14px;
+    }
+
+    /* ── FORM PANEL ── */
+    .panel-overlay{
+      position:fixed;inset:0;background:rgba(0,0,0,0.6);
+      z-index:200;display:flex;align-items:center;justify-content:center;
+      opacity:0;pointer-events:none;transition:opacity 0.2s;
+    }
+    .panel-overlay.open{opacity:1;pointer-events:auto}
+    .panel{
+      width:100%;max-width:560px;max-height:90vh;
+      background:var(--bg2);border-radius:var(--r);
+      border:1px solid var(--border);
+      display:flex;flex-direction:column;
+      transform:translateY(20px);transition:transform 0.2s;
+      overflow:hidden;
+    }
+    .panel-overlay.open .panel{transform:translateY(0)}
+    .panel-head{
+      display:flex;align-items:center;justify-content:space-between;
+      padding:20px 24px;border-bottom:1px solid var(--border);flex-shrink:0;
+    }
+    .panel-title{font-size:16px;font-weight:600;color:var(--text)}
+    .panel-close{
+      width:28px;height:28px;border-radius:50%;
+      background:var(--bg3);border:none;color:var(--text3);
+      font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+      transition:background 0.12s;
+    }
+    .panel-close:hover{background:var(--bg4)}
+    .panel-body{flex:1;overflow-y:auto;padding:24px}
+    .panel-footer{
+      display:flex;justify-content:flex-end;gap:10px;
+      padding:16px 24px;border-top:1px solid var(--border);flex-shrink:0;
+    }
+
+    /* Form fields */
+    .field{margin-bottom:18px}
+    .field-label{
+      display:block;font-size:12px;font-weight:500;color:var(--text3);
+      margin-bottom:7px;
+    }
+    .field-label span{color:var(--red)}
+    .field input,.field textarea,.field select{
+      width:100%;padding:10px 13px;
+      background:var(--bg3);border:1px solid var(--border);
+      border-radius:var(--r-sm);color:var(--text);font-size:14px;
+      outline:none;transition:border-color 0.15s;
+    }
+    .field input:focus,.field textarea:focus,.field select:focus{border-color:var(--accent)}
+    .field textarea{min-height:80px;resize:vertical;line-height:1.5}
+    .field select option{background:var(--bg3)}
+    .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .field-hint{font-size:11px;color:var(--text4);margin-top:5px}
+
+    /* Image URL list */
+    .img-list{display:flex;flex-direction:column;gap:8px;margin-bottom:8px}
+    .img-row{display:flex;gap:8px;align-items:center}
+    .img-row input{flex:1;padding:8px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--text);font-size:13px;outline:none;transition:border-color 0.15s}
+    .img-row input:focus{border-color:var(--accent)}
+    .img-del{
+      width:28px;height:28px;border-radius:6px;
+      background:rgba(255,69,58,0.1);border:none;color:var(--red);
+      cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+      transition:background 0.12s;
+    }
+    .img-del:hover{background:rgba(255,69,58,0.2)}
+    .img-add{
+      display:flex;align-items:center;gap:6px;
+      padding:7px 12px;border-radius:var(--r-sm);
+      background:var(--bg3);border:1px solid var(--border);
+      color:var(--text3);font-size:12px;font-weight:500;cursor:pointer;
+      transition:background 0.12s;width:fit-content;
+    }
+    .img-add:hover{background:var(--bg4)}
+
+    /* Toggle */
+    .toggle-row{display:flex;align-items:center;justify-content:space-between}
+    .toggle-wrap{display:flex;align-items:center;gap:10px}
+    .toggle{
+      position:relative;width:44px;height:24px;cursor:pointer;
+    }
+    .toggle input{opacity:0;width:0;height:0;position:absolute}
+    .toggle-track{
+      position:absolute;inset:0;border-radius:12px;
+      background:var(--bg4);transition:background 0.2s;
+    }
+    .toggle input:checked + .toggle-track{background:var(--green)}
+    .toggle-knob{
+      position:absolute;top:3px;left:3px;width:18px;height:18px;
+      border-radius:50%;background:#fff;
+      transition:transform 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.3);
+    }
+    .toggle input:checked ~ .toggle-knob{transform:translateX(20px)}
+    .toggle-label{font-size:13px;color:var(--text2)}
+
+    /* ── GITHUB SETTINGS ── */
+    .settings-card{
+      background:var(--bg2);border:1px solid var(--border);
+      border-radius:var(--r);padding:24px;margin-bottom:20px;
+    }
+    .settings-card h3{font-size:15px;font-weight:600;color:var(--text);margin-bottom:4px}
+    .settings-card p{font-size:13px;color:var(--text3);margin-bottom:20px;line-height:1.5}
+    .steps{counter-reset:step}
+    .step{
+      display:flex;gap:14px;margin-bottom:16px;align-items:flex-start;
+    }
+    .step-num{
+      width:24px;height:24px;border-radius:50%;
+      background:rgba(0,113,227,0.18);color:var(--accent);
+      font-size:12px;font-weight:700;flex-shrink:0;
+      display:flex;align-items:center;justify-content:center;
+    }
+    .step-body{font-size:13px;color:var(--text3);line-height:1.6;padding-top:2px}
+    .step-body a{color:var(--accent)}
+    .step-body code{
+      background:var(--bg3);padding:1px 6px;border-radius:4px;
+      font-size:12px;color:var(--text2);
+    }
+
+    /* Publish status */
+    .publish-status{
+      display:none;margin-top:16px;padding:12px 16px;
+      border-radius:var(--r-sm);font-size:13px;
+    }
+    .publish-status.show{display:block}
+    .publish-status.ok{background:rgba(50,215,75,0.12);color:var(--green)}
+    .publish-status.err{background:rgba(255,69,58,0.12);color:var(--red)}
+    .publish-status.loading{background:rgba(255,214,10,0.1);color:var(--yellow)}
+
+    /* Danger zone */
+    .danger-zone{
+      background:rgba(255,69,58,0.07);border:1px solid rgba(255,69,58,0.2);
+      border-radius:var(--r);padding:20px 24px;
+    }
+    .danger-zone h4{font-size:14px;font-weight:600;color:var(--red);margin-bottom:6px}
+    .danger-zone p{font-size:13px;color:var(--text3);margin-bottom:14px}
+    .btn-danger{
+      padding:8px 16px;border-radius:8px;font-size:13px;font-weight:500;
+      background:rgba(255,69,58,0.12);color:var(--red);
+      border:1px solid rgba(255,69,58,0.3);cursor:pointer;
+      transition:background 0.12s;
+    }
+    .btn-danger:hover{background:rgba(255,69,58,0.22)}
+
+    /* Buttons */
+    .btn-primary{
+      padding:9px 20px;background:var(--accent);color:#fff;
+      border:none;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;
+      transition:background 0.15s;
+    }
+    .btn-primary:hover{background:var(--accent-h)}
+    .btn-secondary{
+      padding:9px 20px;background:var(--bg3);color:var(--text2);
+      border:1px solid var(--border);border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;
+      transition:background 0.12s;
+    }
+    .btn-secondary:hover{background:var(--bg4)}
+
+    /* Notification toast */
+    .toast{
+      position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(8px);
+      background:var(--bg3);color:var(--text);
+      padding:11px 20px;border-radius:10px;font-size:13px;font-weight:500;
+      box-shadow:0 8px 24px rgba(0,0,0,0.5);
+      opacity:0;transition:opacity 0.2s,transform 0.2s;pointer-events:none;
+      z-index:9999;white-space:nowrap;
+    }
+    .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+    @media(max-width:768px){
+      .sidebar{display:none}
+      .stat-row{grid-template-columns:1fr 1fr}
+      .content{padding:20px 16px}
+    }
+  </style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">S</div>
+    <h1>Sentraq Admin</h1>
+    <p>Masuk untuk mengelola produk</p>
+    <div class="login-field">
+      <input type="password" id="login-pw" placeholder="Password" autocomplete="current-password">
+    </div>
+    <button class="login-submit" id="login-btn">Masuk</button>
+    <p class="login-error" id="login-error"></p>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <span class="topbar-logo">Sentraq</span>
+      <span class="topbar-badge">Admin</span>
+    </div>
+    <div class="topbar-right">
+      <a href="index.html" class="topbar-btn topbar-btn-ghost" target="_blank">Lihat Website ↗</a>
+      <button class="topbar-btn topbar-btn-primary" id="publish-btn">Publish ke GitHub</button>
+      <button class="topbar-btn topbar-btn-ghost" id="logout-btn">Keluar</button>
+    </div>
+  </div>
+
+  <div class="main-area">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-label">Menu</div>
+        <button class="sidebar-item active" data-view="products">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          Produk
+        </button>
+        <button class="sidebar-item" data-view="settings">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+          Pengaturan
+        </button>
+      </div>
+    </aside>
+
+    <!-- Content -->
+    <div class="content">
+
+      <!-- PRODUCTS VIEW -->
+      <div id="view-products">
+        <div class="stat-row">
+          <div class="stat-card">
+            <div class="stat-label">Total Produk</div>
+            <div class="stat-value" id="stat-total">0</div>
+            <div class="stat-sub">Semua kategori</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Tersedia</div>
+            <div class="stat-value" id="stat-avail">0</div>
+            <div class="stat-sub">Siap dijual</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">MacBook</div>
+            <div class="stat-value" id="stat-mac">0</div>
+            <div class="stat-sub">Unit tersedia</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Laptop</div>
+            <div class="stat-value" id="stat-laptop">0</div>
+            <div class="stat-sub">Unit tersedia</div>
+          </div>
+        </div>
+        <div class="table-header">
+          <h2 class="table-title">Katalog Produk</h2>
+          <button class="add-btn" id="add-product-btn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Tambah Produk
+          </button>
+        </div>
+        <table class="product-table" id="product-table">
+          <thead>
+            <tr>
+              <th>Nama</th>
+              <th>Kategori</th>
+              <th>Harga</th>
+              <th>Gambar</th>
+              <th>Status</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="product-tbody"></tbody>
+        </table>
+      </div>
+
+      <!-- SETTINGS VIEW -->
+      <div id="view-settings" style="display:none">
+        <h2 style="font-size:22px;font-weight:700;margin-bottom:6px">Pengaturan</h2>
+        <p style="color:var(--text3);font-size:14px;margin-bottom:28px">Konfigurasi GitHub untuk auto-publish produk.</p>
+
+        <div class="settings-card">
+          <h3>GitHub Auto-Publish</h3>
+          <p>Hubungkan admin ke repo GitHub kamu agar perubahan produk langsung ter-publish ke website tanpa manual upload.</p>
+          <div class="steps">
+            <div class="step">
+              <div class="step-num">1</div>
+              <div class="step-body">Buat <strong>Personal Access Token</strong> di GitHub:<br>
+                <a href="https://github.com/settings/tokens/new" target="_blank">github.com/settings/tokens/new</a><br>
+                Centang permission: <code>repo</code> → Save token.
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-num">2</div>
+              <div class="step-body">Isi form di bawah dengan token, username GitHub, dan nama repo kamu.</div>
+            </div>
+            <div class="step">
+              <div class="step-num">3</div>
+              <div class="step-body">Klik <strong>Simpan</strong>, lalu klik <strong>Publish ke GitHub</strong> di topbar kapanpun ada perubahan produk.</div>
+            </div>
+          </div>
+
+          <div class="field" style="margin-top:20px">
+            <label class="field-label">GitHub Personal Access Token <span>*</span></label>
+            <input type="password" id="gh-token" placeholder="ghp_xxxxxxxxxxxx">
+            <p class="field-hint">Disimpan di browser (localStorage). Tidak pernah dikirim ke server selain GitHub API.</p>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label class="field-label">Username GitHub <span>*</span></label>
+              <input type="text" id="gh-user" placeholder="sentraq">
+            </div>
+            <div class="field">
+              <label class="field-label">Nama Repo <span>*</span></label>
+              <input type="text" id="gh-repo" placeholder="sentraq.github.io">
+            </div>
+          </div>
+          <div class="field">
+            <label class="field-label">Branch</label>
+            <input type="text" id="gh-branch" placeholder="main" value="main">
+          </div>
+
+          <button class="btn-primary" id="save-gh-btn">Simpan Pengaturan</button>
+          <button class="btn-secondary" id="test-gh-btn" style="margin-left:10px">Test Koneksi</button>
+          <div class="publish-status" id="gh-status"></div>
+        </div>
+
+        <div class="settings-card">
+          <h3>Ganti Password Admin</h3>
+          <p>Password disimpan sebagai SHA-256 hash di browser kamu.</p>
+          <div class="field-row">
+            <div class="field">
+              <label class="field-label">Password Baru <span>*</span></label>
+              <input type="password" id="new-pw1" placeholder="Password baru">
+            </div>
+            <div class="field">
+              <label class="field-label">Konfirmasi <span>*</span></label>
+              <input type="password" id="new-pw2" placeholder="Ulangi password">
+            </div>
+          </div>
+          <button class="btn-primary" id="change-pw-btn">Ganti Password</button>
+        </div>
+
+        <div class="danger-zone">
+          <h4>⚠ Danger Zone</h4>
+          <p>Reset semua data admin di browser ini (token, settings). Produk tidak akan terhapus dari GitHub.</p>
+          <button class="btn-danger" id="reset-btn">Reset Data Admin</button>
+        </div>
+      </div>
+
+    </div><!-- .content -->
+  </div><!-- .main-area -->
+</div><!-- #app -->
+
+<!-- PRODUCT FORM PANEL -->
+<div class="panel-overlay" id="panel-overlay">
+  <div class="panel">
+    <div class="panel-head">
+      <h3 class="panel-title" id="panel-title">Tambah Produk</h3>
+      <button class="panel-close" id="panel-close">&times;</button>
+    </div>
+    <div class="panel-body">
+      <input type="hidden" id="form-id">
+
+      <div class="field">
+        <label class="field-label">Nama Produk <span>*</span></label>
+        <input type="text" id="form-name" placeholder="cth: MacBook Pro 2020 i5">
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label class="field-label">Kategori <span>*</span></label>
+          <select id="form-category">
+            <option value="macbook">MacBook</option>
+            <option value="iphone">iPhone</option>
+            <option value="ipad">iPad</option>
+            <option value="laptop">Laptop</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="field-label">Harga (Rp) <span>*</span></label>
+          <input type="number" id="form-price" placeholder="7500000" min="0">
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="field-label">Spesifikasi <span>*</span></label>
+        <input type="text" id="form-specs" placeholder="cth: Intel Core i5 · 16GB RAM · 512GB SSD · Space Gray">
+      </div>
+
+      <div class="field">
+        <label class="field-label">Deskripsi</label>
+        <textarea id="form-desc" placeholder="Deskripsi kondisi produk, kelengkapan, catatan penting…"></textarea>
+      </div>
+
+      <div class="field">
+        <label class="field-label">Pesan WhatsApp (opsional)</label>
+        <input type="text" id="form-wa" placeholder="Halo Sentraq, saya tertarik dengan …">
+        <p class="field-hint">Dikosongkan = otomatis dari nama + harga</p>
+      </div>
+
+      <div class="field">
+        <label class="field-label">URL Foto Produk</label>
+        <p class="field-hint" style="margin-bottom:10px">Paste URL foto dari Google Drive, ImgBB, Cloudinary, atau link direct image.</p>
+        <div class="img-list" id="img-list"></div>
+        <button class="img-add" id="img-add-btn">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Tambah URL Foto
+        </button>
+      </div>
+
+      <div class="field">
+        <div class="toggle-row">
+          <span class="toggle-label" style="font-size:14px;font-weight:500;color:var(--text2)">Status Ketersediaan</span>
+          <label class="toggle">
+            <input type="checkbox" id="form-available" checked>
+            <div class="toggle-track"></div>
+            <div class="toggle-knob"></div>
+          </label>
+        </div>
+        <p class="field-hint" style="margin-top:6px">Aktif = Tersedia &bull; Nonaktif = Terjual / Tidak Tersedia</p>
+      </div>
+
+    </div>
+    <div class="panel-footer">
+      <button class="btn-secondary" id="form-cancel">Batal</button>
+      <button class="btn-primary" id="form-save">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+'use strict';
+
+/* ── CONSTANTS ── */
+var PW_KEY       = 'sentraq_admin_pw';
+var PRODUCTS_KEY = 'sentraq_products';
+var GH_TOKEN_KEY = 'sentraq_gh_token';
+var GH_USER_KEY  = 'sentraq_gh_user';
+var GH_REPO_KEY  = 'sentraq_gh_repo';
+var GH_BRANCH_KEY= 'sentraq_gh_branch';
+var DEFAULT_PW_HASH = '80a8d02f2e9169f3b5e951ace17ff10d1c91a03c4c664a86450244b633c5606a'; // sentraq123
+
+/* ── SHA-256 ── */
+async function sha256(str){
+  var buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(function(b){return b.toString(16).padStart(2,'0')}).join('');
+}
+
+/* ── STORAGE ── */
+function getProducts(){
+  try{
+    var raw = localStorage.getItem(PRODUCTS_KEY);
+    if(raw) return JSON.parse(raw);
+  }catch(e){}
+  return null;
+}
+function saveProducts(arr){
+  localStorage.setItem(PRODUCTS_KEY,JSON.stringify(arr));
+}
+function getPwHash(){ return localStorage.getItem(PW_KEY)||DEFAULT_PW_HASH; }
+function savePwHash(h){ localStorage.setItem(PW_KEY,h); }
+
+/* ── TOAST ── */
+var toastTimer;
+function toast(msg, dur){
+  var el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ el.classList.remove('show'); }, dur||2600);
+}
+
+/* ── LOGIN ── */
+var loginScreen = document.getElementById('login-screen');
+var app = document.getElementById('app');
+
+document.getElementById('login-pw').addEventListener('keydown', function(e){
+  if(e.key==='Enter') document.getElementById('login-btn').click();
+});
+
+document.getElementById('login-btn').addEventListener('click', async function(){
+  var pw = document.getElementById('login-pw').value;
+  var errEl = document.getElementById('login-error');
+  if(!pw){ errEl.textContent='Masukkan password'; return; }
+  var h = await sha256(pw);
+  if(h === getPwHash()){
+    loginScreen.classList.add('hidden');
+    app.classList.add('visible');
+    initApp();
+  } else {
+    errEl.textContent='Password salah. Coba lagi.';
+    document.getElementById('login-pw').value='';
+  }
+});
+
+document.getElementById('logout-btn').addEventListener('click', function(){
+  app.classList.remove('visible');
+  loginScreen.classList.remove('hidden');
+  document.getElementById('login-pw').value='';
+  document.getElementById('login-error').textContent='';
+});
+
+/* ── APP INIT ── */
+var products = [];
+
+function initApp(){
+  var stored = getProducts();
+  if(stored && stored.length){
+    products = stored;
+  } else {
+    products = getDefaultProducts();
+    saveProducts(products);
+  }
+  renderTable();
+  updateStats();
+  loadGhSettings();
+  initSidebar();
+  initPublish();
+}
+
+function getDefaultProducts(){
+  return [
+    {id:'macbook-pro-2020-i5',name:'MacBook Pro 2020 i5',category:'macbook',
+     specs:'Intel Core i5 · 16GB RAM · 512GB SSD · Space Gray',price:7500000,
+     description:'MacBook Pro 2020 kondisi mulus, baterai prima, layar tanpa dead pixel.',
+     images:[],available:true,
+     whatsapp:'Halo Sentraq, saya tertarik dengan MacBook Pro 2020 i5 16GB 512GB harga Rp 7.500.000'},
+    {id:'macbook-pro-2018-silver',name:'MacBook Pro 2018 Touchbar',category:'macbook',
+     specs:'Intel Core i5 · 16GB RAM · 256GB SSD NVMe · Silver',price:6800000,
+     description:'MacBook Pro 2018 lengkap dengan Touchbar. Dikurasi dan diperiksa.',
+     images:[],available:true,
+     whatsapp:'Halo Sentraq, saya tertarik dengan MacBook Pro 2018 Touchbar Silver 16GB 256GB harga Rp 6.800.000'},
+    {id:'hp-omen-rtx3060',name:'HP OMEN Gaming',category:'laptop',
+     specs:'Intel Core i7 · 16GB RAM · 512GB SSD · RTX 3060',price:15500000,
+     description:'HP OMEN Gaming Laptop performa tinggi untuk gaming dan kreativitas.',
+     images:[],available:true,
+     whatsapp:'Halo Sentraq, saya tertarik dengan HP OMEN Gaming Laptop RTX 3060 harga Rp 15.500.000'}
+  ];
+}
+
+/* ── SIDEBAR ── */
+function initSidebar(){
+  document.querySelectorAll('.sidebar-item[data-view]').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      var view = this.dataset.view;
+      document.querySelectorAll('.sidebar-item').forEach(function(b){b.classList.remove('active')});
+      this.classList.add('active');
+      document.getElementById('view-products').style.display = view==='products'?'':'none';
+      document.getElementById('view-settings').style.display = view==='settings'?'':'none';
+    });
+  });
+}
+
+/* ── STATS ── */
+function updateStats(){
+  document.getElementById('stat-total').textContent  = products.length;
+  document.getElementById('stat-avail').textContent  = products.filter(function(p){return p.available}).length;
+  document.getElementById('stat-mac').textContent    = products.filter(function(p){return p.category==='macbook'&&p.available}).length;
+  document.getElementById('stat-laptop').textContent = products.filter(function(p){return(p.category==='laptop')&&p.available}).length;
+}
+
+/* ── TABLE ── */
+function formatRp(n){
+  return 'Rp\u00a0'+Number(n).toLocaleString('id-ID');
+}
+
+function renderTable(){
+  var tbody = document.getElementById('product-tbody');
+  tbody.innerHTML='';
+  if(!products.length){
+    tbody.innerHTML='<tr><td colspan="6"><div class="table-empty">Belum ada produk. Klik "Tambah Produk" untuk mulai.</div></td></tr>';
+    return;
+  }
+  products.forEach(function(p,i){
+    var catMap={macbook:'MacBook',iphone:'iPhone',ipad:'iPad',laptop:'Laptop'};
+    var tr=document.createElement('tr');
+    tr.innerHTML=[
+      '<td><span class="tbl-name">'+p.name+'</span></td>',
+      '<td><span class="tbl-cat">'+(catMap[p.category]||p.category)+'</span></td>',
+      '<td><span class="tbl-price">'+formatRp(p.price)+'</span></td>',
+      '<td>'+(p.images&&p.images.length?p.images.length+' foto':'—')+'</td>',
+      '<td class="'+(p.available?'tbl-avail-yes':'tbl-avail-no')+'">'+(p.available?'Tersedia':'Terjual')+'</td>',
+      '<td><div class="tbl-actions">',
+        '<button class="tbl-btn tbl-btn-edit" data-idx="'+i+'">Edit</button>',
+        '<button class="tbl-btn tbl-btn-del" data-idx="'+i+'">Hapus</button>',
+      '</div></td>'
+    ].join('');
+    tbody.appendChild(tr);
+  });
+
+  tbody.querySelectorAll('.tbl-btn-edit').forEach(function(btn){
+    btn.addEventListener('click',function(){ openPanel(Number(this.dataset.idx)); });
+  });
+  tbody.querySelectorAll('.tbl-btn-del').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      if(confirm('Hapus "'+products[Number(this.dataset.idx)].name+'"?')){
+        products.splice(Number(this.dataset.idx),1);
+        saveProducts(products);
+        renderTable(); updateStats();
+        toast('Produk dihapus');
+      }
+    });
+  });
+}
+
+/* ── PANEL ── */
+var editIdx = -1;
+
+function generateId(name){
+  return name.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'')+'-'+Date.now().toString(36);
+}
+
+document.getElementById('add-product-btn').addEventListener('click',function(){ openPanel(-1); });
+document.getElementById('panel-close').addEventListener('click', closePanel);
+document.getElementById('form-cancel').addEventListener('click', closePanel);
+document.getElementById('panel-overlay').addEventListener('click',function(e){ if(e.target===this) closePanel(); });
+document.getElementById('img-add-btn').addEventListener('click', addImgRow);
+
+function openPanel(idx){
+  editIdx = idx;
+  var isEdit = idx >= 0;
+  document.getElementById('panel-title').textContent = isEdit?'Edit Produk':'Tambah Produk';
+  document.getElementById('img-list').innerHTML='';
+
+  if(isEdit){
+    var p = products[idx];
+    document.getElementById('form-id').value       = p.id||'';
+    document.getElementById('form-name').value     = p.name||'';
+    document.getElementById('form-category').value = p.category||'macbook';
+    document.getElementById('form-price').value    = p.price||'';
+    document.getElementById('form-specs').value    = p.specs||'';
+    document.getElementById('form-desc').value     = p.description||'';
+    document.getElementById('form-wa').value       = p.whatsapp||'';
+    document.getElementById('form-available').checked = !!p.available;
+    (p.images||[]).forEach(function(url){ addImgRow(url); });
+  } else {
+    document.getElementById('form-id').value       = '';
+    document.getElementById('form-name').value     = '';
+    document.getElementById('form-category').value = 'macbook';
+    document.getElementById('form-price').value    = '';
+    document.getElementById('form-specs').value    = '';
+    document.getElementById('form-desc').value     = '';
+    document.getElementById('form-wa').value       = '';
+    document.getElementById('form-available').checked = true;
+  }
+
+  document.getElementById('panel-overlay').classList.add('open');
+}
+
+function closePanel(){
+  document.getElementById('panel-overlay').classList.remove('open');
+}
+
+function addImgRow(url){
+  var list = document.getElementById('img-list');
+  var row  = document.createElement('div');
+  row.className = 'img-row';
+  var input = document.createElement('input');
+  input.type = 'text';
+  input.placeholder = 'https://example.com/foto.jpg';
+  input.value = typeof url === 'string' ? url : '';
+  var del = document.createElement('button');
+  del.className = 'img-del';
+  del.type = 'button';
+  del.innerHTML = '&times;';
+  del.addEventListener('click',function(){ row.remove(); });
+  row.appendChild(input); row.appendChild(del);
+  list.appendChild(row);
+  input.focus();
+}
+
+document.getElementById('form-save').addEventListener('click',function(){
+  var name  = document.getElementById('form-name').value.trim();
+  var cat   = document.getElementById('form-category').value;
+  var price = Number(document.getElementById('form-price').value);
+  var specs = document.getElementById('form-specs').value.trim();
+  var desc  = document.getElementById('form-desc').value.trim();
+  var wa    = document.getElementById('form-wa').value.trim();
+  var avail = document.getElementById('form-available').checked;
+  var imgs  = Array.from(document.querySelectorAll('#img-list .img-row input'))
+                   .map(function(i){return i.value.trim()}).filter(Boolean);
+
+  if(!name||!specs||!price){
+    toast('Lengkapi nama, spesifikasi, dan harga'); return;
+  }
+
+  var id = editIdx>=0 ? (products[editIdx].id||generateId(name)) : generateId(name);
+  var obj = {id:id,name:name,category:cat,specs:specs,price:price,
+             description:desc,images:imgs,available:avail,
+             whatsapp:wa||('Halo Sentraq, saya tertarik dengan '+name+' harga '+formatRp(price))};
+
+  if(editIdx>=0){ products[editIdx]=obj; } else { products.push(obj); }
+  saveProducts(products);
+  renderTable(); updateStats();
+  closePanel();
+  toast(editIdx>=0?'Produk diperbarui':'Produk ditambahkan ✓');
+});
+
+/* ── GITHUB SETTINGS ── */
+function loadGhSettings(){
+  document.getElementById('gh-token').value  = localStorage.getItem(GH_TOKEN_KEY)||'';
+  document.getElementById('gh-user').value   = localStorage.getItem(GH_USER_KEY)||'';
+  document.getElementById('gh-repo').value   = localStorage.getItem(GH_REPO_KEY)||'';
+  document.getElementById('gh-branch').value = localStorage.getItem(GH_BRANCH_KEY)||'main';
+}
+
+document.getElementById('save-gh-btn').addEventListener('click',function(){
+  var token  = document.getElementById('gh-token').value.trim();
+  var user   = document.getElementById('gh-user').value.trim();
+  var repo   = document.getElementById('gh-repo').value.trim();
+  var branch = document.getElementById('gh-branch').value.trim()||'main';
+  if(!token||!user||!repo){ toast('Lengkapi semua field GitHub'); return; }
+  localStorage.setItem(GH_TOKEN_KEY,token);
+  localStorage.setItem(GH_USER_KEY,user);
+  localStorage.setItem(GH_REPO_KEY,repo);
+  localStorage.setItem(GH_BRANCH_KEY,branch);
+  toast('Pengaturan GitHub disimpan ✓');
+});
+
+document.getElementById('test-gh-btn').addEventListener('click', async function(){
+  var statusEl = document.getElementById('gh-status');
+  var token  = localStorage.getItem(GH_TOKEN_KEY);
+  var user   = localStorage.getItem(GH_USER_KEY);
+  var repo   = localStorage.getItem(GH_REPO_KEY);
+  if(!token||!user||!repo){ toast('Simpan pengaturan dulu'); return; }
+  statusEl.textContent='Menghubungkan ke GitHub…';
+  statusEl.className='publish-status loading show';
+  try{
+    var r = await fetch('https://api.github.com/repos/'+user+'/'+repo,{
+      headers:{Authorization:'token '+token,'Accept':'application/vnd.github.v3+json'}
+    });
+    if(r.ok){
+      var d = await r.json();
+      statusEl.textContent='✓ Terhubung: '+d.full_name+' ('+d.visibility+')';
+      statusEl.className='publish-status ok show';
+    } else {
+      statusEl.textContent='✗ Gagal: '+r.status+' '+r.statusText;
+      statusEl.className='publish-status err show';
+    }
+  } catch(e){
+    statusEl.textContent='✗ Error: '+e.message;
+    statusEl.className='publish-status err show';
+  }
+});
+
+/* ── PUBLISH ── */
+function initPublish(){
+  document.getElementById('publish-btn').addEventListener('click', publishToGitHub);
+}
+
+async function publishToGitHub(){
+  var token  = localStorage.getItem(GH_TOKEN_KEY);
+  var user   = localStorage.getItem(GH_USER_KEY);
+  var repo   = localStorage.getItem(GH_REPO_KEY);
+  var branch = localStorage.getItem(GH_BRANCH_KEY)||'main';
+
+  if(!token||!user||!repo){
+    toast('Set GitHub token dulu di menu Pengaturan');
+    return;
+  }
+
+  var btn = document.getElementById('publish-btn');
+  btn.textContent='Mempublish…'; btn.disabled=true;
+
+  try{
+    var content = JSON.stringify({products:products},null,2);
+    var b64 = btoa(unescape(encodeURIComponent(content)));
+    var path = 'products.json';
+    var apiUrl = 'https://api.github.com/repos/'+user+'/'+repo+'/contents/'+path;
+
+    // Get current SHA
+    var existing = await fetch(apiUrl+'?ref='+branch, {
+      headers:{Authorization:'token '+token,'Accept':'application/vnd.github.v3+json'}
+    });
+    var body = {
+      message:'Update products catalog via Sentraq Admin',
+      content:b64,
+      branch:branch
+    };
+    if(existing.ok){
+      var eData = await existing.json();
+      body.sha = eData.sha;
+    }
+
+    var r = await fetch(apiUrl,{
+      method:'PUT',
+      headers:{Authorization:'token '+token,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'},
+      body:JSON.stringify(body)
+    });
+
+    if(r.ok){
+      toast('✓ Published! Website akan update dalam ~30 detik');
+    } else {
+      var err = await r.json();
+      toast('✗ Gagal: '+(err.message||r.status));
+    }
+  } catch(e){
+    toast('✗ Error: '+e.message);
+  } finally {
+    btn.textContent='Publish ke GitHub'; btn.disabled=false;
+  }
+}
+
+/* ── CHANGE PASSWORD ── */
+document.getElementById('change-pw-btn').addEventListener('click', async function(){
+  var pw1 = document.getElementById('new-pw1').value;
+  var pw2 = document.getElementById('new-pw2').value;
+  if(!pw1){ toast('Masukkan password baru'); return; }
+  if(pw1!==pw2){ toast('Password tidak cocok'); return; }
+  if(pw1.length<6){ toast('Password minimal 6 karakter'); return; }
+  savePwHash(await sha256(pw1));
+  document.getElementById('new-pw1').value='';
+  document.getElementById('new-pw2').value='';
+  toast('Password berhasil diganti ✓');
+});
+
+/* ── RESET ── */
+document.getElementById('reset-btn').addEventListener('click',function(){
+  if(confirm('Reset semua data admin? (Token GitHub dan settings akan dihapus. Produk tetap aman.)')){
+    localStorage.removeItem(GH_TOKEN_KEY);
+    localStorage.removeItem(GH_USER_KEY);
+    localStorage.removeItem(GH_REPO_KEY);
+    localStorage.removeItem(GH_BRANCH_KEY);
+    loadGhSettings();
+    toast('Data admin direset');
+  }
+});
+
+})();
+</script>
+</body>
+</html>
