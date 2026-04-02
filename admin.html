@@ -851,7 +851,7 @@ function closePanel(){
   document.getElementById('panel-overlay').classList.remove('open');
 }
 
-function addImgRow(url){
+function addImgRow(url, sizeLabel){
   var list = document.getElementById('img-list');
   var row  = document.createElement('div');
   row.className = 'img-row';
@@ -864,41 +864,91 @@ function addImgRow(url){
     row.appendChild(thumb);
   }
 
-  var input = document.createElement('input');
-  input.type = 'text';
-  input.placeholder = 'https://example.com/foto.jpg';
-  input.value = typeof url === 'string' ? url : '';
-  input.style.flex = '1';
-  // Update thumb on change
-  input.addEventListener('input', function(){
-    var t = row.querySelector('img');
-    if(this.value.startsWith('http')){
-      if(!t){ t = document.createElement('img'); t.style.cssText='width:44px;height:44px;object-fit:cover;border-radius:6px;flex-shrink:0;border:1px solid rgba(255,255,255,0.1)'; row.prepend(t); }
-      t.src = this.value;
-    }
-  });
+  var col = document.createElement('div');
+  col.style.cssText = 'flex:1;min-width:0;display:flex;flex-direction:column;gap:2px';
+
+  // If data URL, show size badge instead of editable URL
+  if(url && url.startsWith('data:')){
+    var badge = document.createElement('span');
+    badge.style.cssText = 'font-size:11px;color:var(--green);font-weight:500';
+    badge.textContent = '📁 ' + (sizeLabel || 'Foto dari device');
+    var hidden = document.createElement('input');
+    hidden.type = 'hidden';
+    hidden.value = url;
+    col.appendChild(badge);
+    col.appendChild(hidden);
+    row._isFile = true;
+  } else {
+    var input = document.createElement('input');
+    input.type = 'text';
+    input.placeholder = 'https://example.com/foto.jpg';
+    input.value = typeof url === 'string' ? url : '';
+    input.style.cssText = 'background:transparent;border:none;outline:none;color:var(--text);font-size:12px;width:100%';
+    input.addEventListener('input', function(){
+      var t = row.querySelector('img');
+      if(this.value.startsWith('http')){
+        if(!t){ t = document.createElement('img'); t.style.cssText='width:44px;height:44px;object-fit:cover;border-radius:6px;flex-shrink:0;border:1px solid rgba(255,255,255,0.1)'; row.prepend(t); }
+        t.src = this.value;
+      }
+    });
+    col.appendChild(input);
+  }
 
   var del = document.createElement('button');
   del.className = 'img-del';
   del.type = 'button';
   del.innerHTML = '&times;';
   del.addEventListener('click',function(){ row.remove(); });
-  row.appendChild(input); row.appendChild(del);
+  row.appendChild(col); row.appendChild(del);
   list.appendChild(row);
-  if(!url) input.focus();
+  if(!url){ var inp = col.querySelector('input[type=text]'); if(inp) inp.focus(); }
 }
 
 // Upload dari device
 document.getElementById('img-upload-btn').addEventListener('click', function(){
   document.getElementById('img-file-input').click();
 });
-document.getElementById('img-file-input').addEventListener('change', function(){
-  Array.from(this.files).forEach(function(file){
+
+// Compress image via Canvas before storing (target < 800KB, max 1200px)
+function compressImage(file){
+  return new Promise(function(resolve){
     var reader = new FileReader();
-    reader.onload = function(e){ addImgRow(e.target.result); };
+    reader.onload = function(e){
+      var img = new Image();
+      img.onload = function(){
+        var MAX = 1200;
+        var w = img.width, h = img.height;
+        if(w > MAX){ h = Math.round(h * MAX / w); w = MAX; }
+        if(h > MAX){ w = Math.round(w * MAX / h); h = MAX; }
+        var canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        // Try quality 0.82 → if still >700KB drop to 0.65
+        var dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+        if(dataUrl.length > 950000) dataUrl = canvas.toDataURL('image/jpeg', 0.65);
+        if(dataUrl.length > 950000) dataUrl = canvas.toDataURL('image/jpeg', 0.50);
+        resolve({ dataUrl: dataUrl, w: w, h: h, kb: Math.round(dataUrl.length * 0.75 / 1024) });
+      };
+      img.src = e.target.result;
+    };
     reader.readAsDataURL(file);
   });
-  this.value = ''; // reset so same file can be re-selected
+}
+
+document.getElementById('img-file-input').addEventListener('change', async function(){
+  var files = Array.from(this.files);
+  this.value = '';
+  for(var i = 0; i < files.length; i++){
+    var file = files[i];
+    toast('Mengkompresi '+file.name+'…');
+    try{
+      var result = await compressImage(file);
+      addImgRow(result.dataUrl, result.w+'×'+result.h+' · '+result.kb+'KB');
+      toast('✓ '+file.name+' → '+result.kb+'KB');
+    } catch(e){
+      toast('✗ Gagal proses '+file.name+': '+e.message);
+    }
+  }
 });
 
 document.getElementById('form-save').addEventListener('click',function(){
@@ -909,8 +959,9 @@ document.getElementById('form-save').addEventListener('click',function(){
   var desc  = document.getElementById('form-desc').value.trim();
   var wa    = document.getElementById('form-wa').value.trim();
   var avail = document.getElementById('form-available').checked;
-  var imgs  = Array.from(document.querySelectorAll('#img-list .img-row input'))
-                   .map(function(i){return i.value.trim()}).filter(Boolean);
+  // Collect both URL inputs and hidden data-URL inputs
+  var imgs = Array.from(document.querySelectorAll('#img-list .img-row input'))
+                   .map(function(i){ return i.value.trim(); }).filter(Boolean);
 
   if(!name||!specs||!price){
     toast('Lengkapi nama, spesifikasi, dan harga'); return;
