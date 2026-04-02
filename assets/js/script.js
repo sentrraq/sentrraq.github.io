@@ -68,7 +68,7 @@ function initNavbar() {
       applyFilter(this.dataset.filterNav);
       var section = document.getElementById('products');
       if (section) {
-        var top = section.getBoundingClientRect().top + window.scrollY - 124;
+        var top = section.getBoundingClientRect().top + window.scrollY - 72;
         window.scrollTo({ top: top, behavior: 'smooth' });
       }
     });
@@ -85,13 +85,11 @@ function loadProducts() {
     .then(function (data) {
       allProducts = data.products || [];
       renderProducts(allProducts);
-      initFilterPills();
       initAnimations();
     })
     .catch(function () {
       allProducts = getFallbackProducts();
       renderProducts(allProducts);
-      initFilterPills();
       initAnimations();
     });
 }
@@ -208,17 +206,6 @@ function renderProducts(products) {
 }
 
 /* ===== FILTER ===== */
-function initFilterPills() {
-  var pills = document.querySelectorAll('.filter-pill');
-  if (!pills.length) return;
-
-  pills.forEach(function (pill) {
-    pill.addEventListener('click', function () {
-      applyFilter(this.dataset.filter);
-    });
-  });
-}
-
 function applyFilter(filter) {
   activeFilter = filter;
   var cards = document.querySelectorAll('.product-card');
