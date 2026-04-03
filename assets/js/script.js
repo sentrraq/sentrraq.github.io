@@ -109,6 +109,9 @@ function showProductsError() {
   var grid = document.getElementById('product-grid');
   if (!grid) return;
 
+  var loading = document.getElementById('products-loading');
+  if (loading) loading.style.display = 'none';
+
   // Clear grid
   grid.innerHTML = '';
 
@@ -125,30 +128,10 @@ function showProductsError() {
   var btn = document.createElement('button');
   btn.className = 'products-retry-btn';
   btn.textContent = 'Coba lagi';
-  btn.onclick = function () { loadProducts(); };
+  btn.addEventListener('click', loadProducts);
   errorDiv.appendChild(btn);
 
   grid.appendChild(errorDiv);
-}
-
-function getFallbackProducts() {
-  return [
-    { id: 'macbook-pro-2020-i5', name: 'MacBook Pro 2020 i5', category: 'macbook',
-      specs: 'Intel Core i5 · 16GB RAM · 512GB SSD · Space Gray', price: 7500000,
-      description: 'MacBook Pro 2020 kondisi mulus, baterai prima, layar tanpa dead pixel.',
-      images: [], available: true,
-      whatsapp: 'Halo Sentraq, saya tertarik dengan MacBook Pro 2020 i5 16GB 512GB harga Rp 7.500.000' },
-    { id: 'macbook-pro-2018-silver', name: 'MacBook Pro 2018 Touchbar', category: 'macbook',
-      specs: 'Intel Core i5 · 16GB RAM · 256GB SSD NVMe · Silver', price: 6800000,
-      description: 'MacBook Pro 2018 lengkap dengan Touchbar. Dikurasi dan diperiksa tim Sentraq.',
-      images: [], available: true,
-      whatsapp: 'Halo Sentraq, saya tertarik dengan MacBook Pro 2018 Touchbar Silver 16GB 256GB harga Rp 6.800.000' },
-    { id: 'hp-omen-rtx3060', name: 'HP OMEN Gaming', category: 'laptop',
-      specs: 'Intel Core i7 · 16GB RAM · 512GB SSD · RTX 3060', price: 15500000,
-      description: 'HP OMEN Gaming Laptop performa tinggi untuk gaming dan kreativitas.',
-      images: [], available: true,
-      whatsapp: 'Halo Sentraq, saya tertarik dengan HP OMEN Gaming Laptop RTX 3060 harga Rp 15.500.000' }
-  ];
 }
 
 /* ===== RENDER PRODUCTS ===== */
