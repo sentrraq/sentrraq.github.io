@@ -116,6 +116,56 @@ function initFilterBar() {
   });
 }
 
+/* ===== JSON-LD STRUCTURED DATA ===== */
+function injectJsonLd(products) {
+  // Remove any existing JSON-LD tag to avoid duplicates on retry
+  var existing = document.getElementById('jsonld-products');
+  if (existing) existing.parentNode.removeChild(existing);
+
+  var items = products.map(function(p, i) {
+    return {
+      '@type': 'ListItem',
+      'position': i + 1,
+      'item': {
+        '@type': 'Product',
+        'name': p.name,
+        'offers': {
+          '@type': 'Offer',
+          'price': p.price,
+          'priceCurrency': 'IDR',
+          'availability': p.available
+            ? 'https://schema.org/InStock'
+            : 'https://schema.org/OutOfStock',
+          'url': 'https://sentraq.github.io/#products'
+        }
+      }
+    };
+  });
+
+  var schema = {
+    '@context': 'https://schema.org',
+    '@type': 'LocalBusiness',
+    'name': 'Sentraq',
+    'url': 'https://sentraq.github.io',
+    'telephone': '+6285716577307',
+    'address': {
+      '@type': 'PostalAddress',
+      'addressLocality': 'Jakarta',
+      'addressCountry': 'ID'
+    },
+    'hasOfferCatalog': {
+      '@type': 'OfferCatalog',
+      'itemListElement': items
+    }
+  };
+
+  var script = document.createElement('script');
+  script.type = 'application/ld+json';
+  script.id = 'jsonld-products';
+  script.text = JSON.stringify(schema);
+  document.head.appendChild(script);
+}
+
 /* ===== SKELETON LOADING ===== */
 function renderSkeletons(n) {
   var grid = document.getElementById('product-grid');
@@ -150,6 +200,7 @@ function loadProducts() {
     .then(function (data) {
       allProducts = data.products || [];
       renderProducts(allProducts);
+      injectJsonLd(allProducts);
       initAnimations();
     })
     .catch(function () {
