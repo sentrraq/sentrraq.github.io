@@ -143,7 +143,7 @@ function buildCard(p) {
   var badge = p.available
     ? '<span class="card-badge">Tersedia</span>'
     : '<span class="card-badge sold">Terjual</span>';
-  var waText = escapeHtml(encodeURIComponent(p.whatsapp || ('Halo Sentraq, saya tertarik dengan ' + safeName + ' harga ' + formatPrice(p.price))));
+  var waText = encodeURIComponent(p.whatsapp || ('Halo Sentraq, saya tertarik dengan ' + safeName + ' harga ' + formatPrice(p.price)));
 
   var mediaHTML;
   if (!hasImages) {
