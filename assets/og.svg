@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#0071e3"/>
+  <rect x="460" y="150" width="280" height="280" rx="64" fill="rgba(255,255,255,0.15)"/>
+  <text x="548" y="390"
+    font-family="-apple-system,Helvetica Neue,Arial,sans-serif"
+    font-size="240" font-weight="700" fill="white">S</text>
+  <text x="600" y="480" text-anchor="middle"
+    font-family="-apple-system,Helvetica Neue,Arial,sans-serif"
+    font-size="72" font-weight="700" fill="rgba(255,255,255,0.95)"
+    letter-spacing="-1">Sentraq</text>
+  <text x="600" y="542" text-anchor="middle"
+    font-family="-apple-system,Helvetica Neue,Arial,sans-serif"
+    font-size="32" fill="rgba(255,255,255,0.65)">Premium Pre-Owned Electronics · Jakarta</text>
+</svg>
