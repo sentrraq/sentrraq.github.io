@@ -1,5 +1,9 @@
 'use strict';
 
+/* Always start at top of page on load — disable browser scroll restoration */
+if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+window.addEventListener('load', function () { window.scrollTo(0, 0); });
+
 var PRODUCTS_URL = 'products.json';
 var WA_NUMBER    = '6285716577307';
 
