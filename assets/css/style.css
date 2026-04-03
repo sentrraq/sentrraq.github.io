@@ -454,7 +454,7 @@ ul, ol { list-style: none; }
   gap: 2px;
 }
 .feature-card {
-  background: var(--bg-card-dark); padding: 40px 32px;
+  background: var(--bg-card-dark); padding: 48px 40px;
   text-align: left;
   opacity: 0; transform: translateY(24px);
   transition: opacity 0.45s ease, transform 0.45s ease;
@@ -463,16 +463,16 @@ ul, ol { list-style: none; }
 .feature-card:first-child { border-radius: var(--r) 0 0 var(--r); }
 .feature-card:last-child  { border-radius: 0 var(--r) var(--r) 0; }
 .feature-icon {
-  width: 48px; height: 48px; border-radius: 12px;
+  width: 52px; height: 52px; border-radius: 14px;
   background: rgba(0,113,227,0.18);
   display: flex; align-items: center; justify-content: center;
-  color: var(--accent); margin-bottom: 22px;
+  color: var(--accent); margin-bottom: 28px;
 }
 .feature-title {
   font-size: 19px; font-weight: 600;
-  color: var(--text-light); margin-bottom: 10px;
+  color: var(--text-light); margin-bottom: 14px;
 }
-.feature-desc { font-size: 14px; color: var(--text-light-2); line-height: 1.65; }
+.feature-desc { font-size: 14px; color: var(--text-light-2); line-height: 1.75; }
 
 /* ===== CONTACT ===== */
 .contact {
