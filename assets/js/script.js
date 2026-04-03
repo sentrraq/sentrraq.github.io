@@ -143,7 +143,7 @@ function buildCard(p) {
   var badge = p.available
     ? '<span class="card-badge">Tersedia</span>'
     : '<span class="card-badge sold">Terjual</span>';
-  var waText = encodeURIComponent(p.whatsapp || ('Halo Sentraq, saya tertarik dengan ' + p.name + ' harga ' + formatPrice(p.price)));
+  var waText = escapeHtml(encodeURIComponent(p.whatsapp || ('Halo Sentraq, saya tertarik dengan ' + safeName + ' harga ' + formatPrice(p.price))));
 
   var mediaHTML;
   if (!hasImages) {
@@ -151,7 +151,7 @@ function buildCard(p) {
       '<div class="card-media" data-single>',
         '<div class="card-media-placeholder">',
           icon,
-          '<span>' + (catLabel[p.category] || 'Produk') + '</span>',
+          '<span>' + safeCat + '</span>',
         '</div>',
       '</div>'
     ].join('');
