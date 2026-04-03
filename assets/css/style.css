@@ -418,6 +418,28 @@ ul, ol { list-style: none; }
 }
 .product-card.hidden { display: none; }
 
+/* Filter transitions */
+.filtering-out {
+  opacity: 0;
+  transform: scale(0.97);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  pointer-events: none;
+}
+
+.filtering-in {
+  animation: filterFadeIn 0.3s ease forwards;
+}
+
+@keyframes filterFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .filtering-out { transition: none; }
+  .filtering-in  { animation: none; opacity: 1; transform: none; }
+}
+
 /* Card image area */
 .card-media {
   position: relative; overflow: hidden;

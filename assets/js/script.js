@@ -281,10 +281,21 @@ function renderProducts(products) {
 }
 
 /* ===== FILTER ===== */
+function updateEmptyState() {
+  var grid = document.getElementById('product-grid');
+  if (!grid) return;
+  var hasVisible = Array.prototype.some.call(
+    grid.querySelectorAll('.product-card'),
+    function(c) { return c.style.display !== 'none'; }
+  );
+  var empty = document.getElementById('products-empty');
+  if (empty) empty.style.display = hasVisible ? 'none' : '';
+}
+
 function applyFilter(filter) {
   activeFilter = filter;
-  var cards = document.querySelectorAll('.product-card');
-  var empty = document.getElementById('products-empty');
+  var cards = document.querySelectorAll('#product-grid .product-card');
+  if (!cards.length) return;
 
   // Update active state on navbar filter links
   document.querySelectorAll('[data-filter-nav]').forEach(function (link) {
@@ -292,14 +303,41 @@ function applyFilter(filter) {
     link.classList.toggle('nav-filter-active', isActive);
   });
 
-  var hasVisible = false;
-  cards.forEach(function (card) {
-    var match = filter === 'all' || card.dataset.category === filter;
-    card.classList.toggle('hidden', !match);
-    if (match) hasVisible = true;
-  });
+  // Check reduced motion preference
+  var reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  if (empty) empty.hidden = hasVisible;
+  if (reducedMotion) {
+    // Instant show/hide
+    cards.forEach(function(card) {
+      var match = filter === 'all' || card.getAttribute('data-category') === filter;
+      card.style.display = match ? '' : 'none';
+    });
+    updateEmptyState();
+    return;
+  }
+
+  // Step 1: fade out all cards
+  cards.forEach(function(card) { card.classList.add('filtering-out'); });
+
+  // Step 2: after fade-out, hide non-matching, fade in matching
+  setTimeout(function() {
+    cards.forEach(function(card, i) {
+      var match = filter === 'all' || card.getAttribute('data-category') === filter;
+      if (!match) {
+        card.style.display = 'none';
+        card.classList.remove('filtering-out');
+      } else {
+        card.style.display = '';
+        card.classList.remove('filtering-out');
+        card.classList.remove('filtering-in');
+        // Stagger: force reflow then add class
+        void card.offsetWidth;
+        card.style.animationDelay = (i * 0.05) + 's';
+        card.classList.add('filtering-in');
+      }
+    });
+    updateEmptyState();
+  }, 150);
 }
 
 /* ===== SLIDERS ===== */
