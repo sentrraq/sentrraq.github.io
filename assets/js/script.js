@@ -88,8 +88,32 @@ function initNavbar() {
   });
 }
 
+/* ===== SKELETON LOADING ===== */
+function renderSkeletons(n) {
+  var grid = document.getElementById('product-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  for (var i = 0; i < n; i++) {
+    var card = document.createElement('article');
+    card.className = 'skeleton-card';
+    card.innerHTML =
+      '<div class="skeleton-img"></div>' +
+      '<div class="skeleton-body">' +
+        '<div class="skeleton-line skeleton-line--wide"></div>' +
+        '<div class="skeleton-line skeleton-line--mid"></div>' +
+        '<div class="skeleton-line skeleton-line--narrow"></div>' +
+        '<div class="skeleton-line skeleton-btn"></div>' +
+      '</div>';
+    grid.appendChild(card);
+  }
+}
+
 /* ===== LOAD PRODUCTS ===== */
 function loadProducts() {
+  renderSkeletons(3);
+  var loading = document.getElementById('products-loading');
+  if (loading) loading.style.display = 'none';
+
   fetch(PRODUCTS_URL + '?v=' + Date.now())
     .then(function (r) {
       if (!r.ok) throw new Error('fetch failed');
@@ -208,6 +232,9 @@ function renderProducts(products) {
   var empty = document.getElementById('products-empty');
 
   if (loading) loading.style.display = 'none';
+
+  var skeletons = grid.querySelectorAll('.skeleton-card');
+  skeletons.forEach(function (el) { el.remove(); });
 
   var existing = grid.querySelectorAll('.product-card');
   existing.forEach(function (el) { el.remove(); });
