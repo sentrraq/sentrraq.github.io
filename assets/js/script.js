@@ -30,6 +30,7 @@ var activeFilter = 'all';
 document.addEventListener('DOMContentLoaded', function () {
   setFooterYear();
   initNavbar();
+  initFilterBar();
   loadProducts();
 });
 
@@ -78,12 +79,39 @@ function initNavbar() {
   document.querySelectorAll('[data-filter-nav]').forEach(function (link) {
     link.addEventListener('click', function (e) {
       e.preventDefault();
-      applyFilter(this.dataset.filterNav);
+      var filter = this.dataset.filterNav;
+      applyFilter(filter);
+      // Sync pill bar active state
+      var pills = document.querySelectorAll('#filter-bar [data-filter]');
+      pills.forEach(function (p) {
+        p.classList.toggle('filter-pill--active', p.getAttribute('data-filter') === filter);
+      });
       var section = document.getElementById('products');
       if (section) {
         var top = section.getBoundingClientRect().top + window.scrollY - 72;
         window.scrollTo({ top: top, behavior: 'smooth' });
       }
+    });
+  });
+}
+
+/* ===== FILTER BAR ===== */
+function initFilterBar() {
+  var bar = document.getElementById('filter-bar');
+  if (!bar) return;
+  var pills = bar.querySelectorAll('[data-filter]');
+  pills.forEach(function(pill) {
+    pill.addEventListener('click', function() {
+      var filter = pill.getAttribute('data-filter');
+      applyFilter(filter);
+      // Update pill active state
+      pills.forEach(function(p) { p.classList.remove('filter-pill--active'); });
+      pill.classList.add('filter-pill--active');
+      // Sync navbar links
+      document.querySelectorAll('[data-filter-nav]').forEach(function(a) {
+        var isActive = a.getAttribute('data-filter-nav') === filter;
+        a.classList.toggle('nav-filter-active', isActive);
+      });
     });
   });
 }

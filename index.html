@@ -108,6 +108,13 @@
 
     <!-- PRODUCT GRID -->
     <section id="products" class="products" aria-label="Daftar produk">
+      <div class="filter-bar" id="filter-bar" role="group" aria-label="Filter produk">
+        <button class="filter-pill filter-pill--active" data-filter="all">Semua</button>
+        <button class="filter-pill" data-filter="macbook">MacBook</button>
+        <button class="filter-pill" data-filter="iphone">iPhone</button>
+        <button class="filter-pill" data-filter="ipad">iPad</button>
+        <button class="filter-pill" data-filter="laptop">Laptop</button>
+      </div>
       <div class="product-grid" id="product-grid">
         <div class="products-loading" id="products-loading" aria-live="polite">
           <div class="loading-spinner" aria-hidden="true"></div>

@@ -312,6 +312,42 @@ ul, ol { list-style: none; }
 .products-retry-btn:hover { background: var(--accent-h); }
 .products-retry-btn:active { background: var(--accent-a); transform: scale(0.97); }
 
+/* Filter pill bar */
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 32px;
+}
+
+.filter-pill {
+  padding: 7px 18px;
+  border-radius: var(--r-pill, 999px);
+  border: none;
+  background: #e8e8ed;
+  color: var(--fg-2, #6e6e73);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  font-family: inherit;
+}
+
+.filter-pill:hover {
+  background: #d1d1d6;
+  color: var(--fg, #1d1d1f);
+}
+
+.filter-pill--active {
+  background: var(--accent, #0071e3);
+  color: #fff;
+}
+
+.filter-pill--active:hover {
+  background: var(--accent-h, #0077ed);
+  color: #fff;
+}
+
 /* Skeleton loading */
 @keyframes shimmer {
   0%   { background-position: -200% 0; }
