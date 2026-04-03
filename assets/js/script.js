@@ -334,6 +334,10 @@ function renderProducts(products) {
 
   var imgs = grid.querySelectorAll('img[data-src]');
   initLazyImages(imgs);
+
+  if (typeof activeFilter !== 'undefined' && activeFilter !== 'all') {
+    applyFilter(activeFilter);
+  }
 }
 
 /* ===== FILTER ===== */
@@ -345,7 +349,7 @@ function updateEmptyState() {
     function(c) { return c.style.display !== 'none'; }
   );
   var empty = document.getElementById('products-empty');
-  if (empty) empty.style.display = hasVisible ? 'none' : '';
+  if (empty) empty.hidden = hasVisible ? true : false;
 }
 
 function applyFilter(filter) {
@@ -377,7 +381,8 @@ function applyFilter(filter) {
 
   // Step 2: after fade-out, hide non-matching, fade in matching
   setTimeout(function() {
-    cards.forEach(function(card, i) {
+    var matchIdx = 0;
+    cards.forEach(function(card) {
       var match = filter === 'all' || card.getAttribute('data-category') === filter;
       if (!match) {
         card.style.display = 'none';
@@ -388,8 +393,9 @@ function applyFilter(filter) {
         card.classList.remove('filtering-in');
         // Stagger: force reflow then add class
         void card.offsetWidth;
-        card.style.animationDelay = (i * 0.05) + 's';
+        card.style.animationDelay = (matchIdx * 0.05) + 's';
         card.classList.add('filtering-in');
+        matchIdx++;
       }
     });
     updateEmptyState();
