@@ -116,54 +116,59 @@ function initFilterBar() {
   });
 }
 
-/* ===== JSON-LD STRUCTURED DATA ===== */
+/* ===== JSON-LD ===== */
 function injectJsonLd(products) {
-  // Remove any existing JSON-LD tag to avoid duplicates on retry
-  var existing = document.getElementById('jsonld-products');
-  if (existing) existing.parentNode.removeChild(existing);
+  var existing = document.getElementById('jsonld-sentraq');
+  if (existing) existing.remove();
 
-  var items = products.map(function(p, i) {
-    return {
-      '@type': 'ListItem',
-      'position': i + 1,
-      'item': {
-        '@type': 'Product',
-        'name': p.name,
-        'offers': {
-          '@type': 'Offer',
-          'price': p.price,
-          'priceCurrency': 'IDR',
-          'availability': p.available
-            ? 'https://schema.org/InStock'
-            : 'https://schema.org/OutOfStock',
-          'url': 'https://sentraq.github.io/#products'
+  var items = products
+    .filter(function(p) { return p.available; })
+    .map(function(p, i) {
+      return {
+        '@type': 'ListItem',
+        'position': i + 1,
+        'item': {
+          '@type': 'Product',
+          'name': p.name,
+          'description': p.specs,
+          'offers': {
+            '@type': 'Offer',
+            'price': p.price,
+            'priceCurrency': 'IDR',
+            'availability': 'https://schema.org/InStock',
+            'url': 'https://sentraq.github.io/#products'
+          }
         }
-      }
-    };
-  });
+      };
+    });
 
   var schema = {
     '@context': 'https://schema.org',
-    '@type': 'LocalBusiness',
-    'name': 'Sentraq',
-    'url': 'https://sentraq.github.io',
-    'telephone': '+6285716577307',
-    'address': {
-      '@type': 'PostalAddress',
-      'addressLocality': 'Jakarta',
-      'addressCountry': 'ID'
-    },
-    'hasOfferCatalog': {
-      '@type': 'OfferCatalog',
-      'itemListElement': items
-    }
+    '@graph': [
+      {
+        '@type': 'LocalBusiness',
+        'name': 'Sentraq',
+        'url': 'https://sentraq.github.io',
+        'telephone': '+6285716577307',
+        'address': {
+          '@type': 'PostalAddress',
+          'addressLocality': 'Jakarta',
+          'addressCountry': 'ID'
+        }
+      },
+      {
+        '@type': 'ItemList',
+        'name': 'Produk Sentraq',
+        'itemListElement': items
+      }
+    ]
   };
 
-  var script = document.createElement('script');
-  script.type = 'application/ld+json';
-  script.id = 'jsonld-products';
-  script.text = JSON.stringify(schema);
-  document.head.appendChild(script);
+  var el = document.createElement('script');
+  el.type = 'application/ld+json';
+  el.id = 'jsonld-sentraq';
+  el.textContent = JSON.stringify(schema);
+  document.head.appendChild(el);
 }
 
 /* ===== SKELETON LOADING ===== */
