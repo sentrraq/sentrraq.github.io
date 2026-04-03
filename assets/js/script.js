@@ -7,6 +7,15 @@ window.addEventListener('load', function () { window.scrollTo(0, 0); });
 var PRODUCTS_URL = 'products.json';
 var WA_NUMBER    = '6285716577307';
 
+function escapeHtml(str) {
+  return String(str == null ? '' : str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 var CATEGORY_ICONS = {
   macbook: '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="13" rx="2"/><path d="M0 20h24"/></svg>',
   iphone:  '<svg width="32" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18.01"/></svg>',
@@ -127,6 +136,10 @@ function buildCard(p) {
   var hasImages = p.images && p.images.length > 0;
   var icon = CATEGORY_ICONS[p.category] || CATEGORY_ICONS.default;
   var catLabel = { macbook: 'MacBook', iphone: 'iPhone', ipad: 'iPad', laptop: 'Laptop' };
+  var safeName  = escapeHtml(p.name);
+  var safeSpecs = escapeHtml(p.specs);
+  var safeDesc  = p.description ? '<p class="card-desc">' + escapeHtml(p.description) + '</p>' : '';
+  var safeCat   = escapeHtml(catLabel[p.category] || p.category);
   var badge = p.available
     ? '<span class="card-badge">Tersedia</span>'
     : '<span class="card-badge sold">Terjual</span>';
@@ -144,7 +157,7 @@ function buildCard(p) {
     ].join('');
   } else {
     var slides = p.images.map(function (url, i) {
-      return '<div class="slide"><img data-src="' + url + '" alt="' + p.name + ' foto ' + (i + 1) + '" loading="lazy"></div>';
+      return '<div class="slide"><img data-src="' + escapeHtml(url) + '" alt="' + safeName + ' foto ' + (i + 1) + '" loading="lazy"></div>';
     }).join('');
     var dots = p.images.map(function (_, i) {
       return '<span class="dot' + (i === 0 ? ' active' : '') + '"></span>';
@@ -161,21 +174,17 @@ function buildCard(p) {
     ].join('');
   }
 
-  var descHTML = p.description
-    ? '<p class="card-desc">' + p.description + '</p>'
-    : '';
-
   var article = document.createElement('article');
   article.className = 'product-card';
   article.dataset.category = p.category;
-  article.setAttribute('aria-label', p.name);
+  article.setAttribute('aria-label', safeName);
   article.innerHTML = [
     mediaHTML,
     '<div class="card-body">',
-      '<p class="card-category">' + (catLabel[p.category] || p.category) + badge + '</p>',
-      '<h3 class="card-title">' + p.name + '</h3>',
-      '<p class="card-specs">' + p.specs + '</p>',
-      descHTML,
+      '<p class="card-category">' + safeCat + badge + '</p>',
+      '<h3 class="card-title">' + safeName + '</h3>',
+      '<p class="card-specs">' + safeSpecs + '</p>',
+      safeDesc,
       '<p class="card-price">' + formatPrice(p.price) + '</p>',
       '<a href="https://wa.me/' + WA_NUMBER + '?text=' + waText + '"',
          ' class="btn btn-primary btn-full btn-sm"',
