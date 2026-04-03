@@ -90,7 +90,7 @@ function initNavbar() {
 
 /* ===== LOAD PRODUCTS ===== */
 function loadProducts() {
-  fetch(PRODUCTS_URL)
+  fetch(PRODUCTS_URL + '?v=' + Date.now())
     .then(function (r) {
       if (!r.ok) throw new Error('fetch failed');
       return r.json();
@@ -101,10 +101,34 @@ function loadProducts() {
       initAnimations();
     })
     .catch(function () {
-      allProducts = getFallbackProducts();
-      renderProducts(allProducts);
-      initAnimations();
+      showProductsError();
     });
+}
+
+function showProductsError() {
+  var grid = document.getElementById('product-grid');
+  if (!grid) return;
+
+  // Clear grid
+  grid.innerHTML = '';
+
+  // Create error div
+  var errorDiv = document.createElement('div');
+  errorDiv.className = 'products-error';
+
+  // Create error message
+  var p = document.createElement('p');
+  p.textContent = 'Gagal memuat produk.';
+  errorDiv.appendChild(p);
+
+  // Create retry button
+  var btn = document.createElement('button');
+  btn.className = 'products-retry-btn';
+  btn.textContent = 'Coba lagi';
+  btn.onclick = function () { loadProducts(); };
+  errorDiv.appendChild(btn);
+
+  grid.appendChild(errorDiv);
 }
 
 function getFallbackProducts() {

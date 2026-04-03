@@ -291,6 +291,27 @@ ul, ol { list-style: none; }
   font-style: italic; margin-top: 4px;
 }
 
+/* Error state */
+.products-error {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 64px 24px;
+  display: flex; flex-direction: column;
+  align-items: center; gap: 24px;
+}
+.products-error p {
+  color: var(--text-2); font-size: 15px; line-height: 1.6; margin: 0;
+}
+.products-retry-btn {
+  background: var(--accent); color: #fff;
+  border: none; border-radius: var(--r-pill);
+  padding: 12px 28px; font-size: 14px; font-weight: 500;
+  cursor: pointer; transition: background 0.15s ease, opacity 0.15s ease, transform 0.15s ease;
+  min-height: 44px;
+}
+.products-retry-btn:hover { background: var(--accent-h); }
+.products-retry-btn:active { background: var(--accent-a); transform: scale(0.97); }
+
 /* ===== PRODUCT CARD ===== */
 .product-card {
   background: var(--bg);
