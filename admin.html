@@ -4,1031 +4,854 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sentraq Admin</title>
-  <meta name="robots" content="noindex, nofollow">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230071e3'/><text y='.88em' font-size='88' x='16' fill='white' font-family='-apple-system,sans-serif' font-weight='700'>S</text></svg>">
-  <style>
-    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-    :root{
-      --bg:#0a0a0b;--bg2:#111113;--bg3:#1c1c1e;--bg4:#2c2c2e;
-      --border:#3a3a3c;--border2:#48484a;
-      --text:#ffffff;--text2:#ebebf0;--text3:#98989f;--text4:#636366;
-      --accent:#0071e3;--accent-h:#0077ed;
-      --green:#32d74b;--red:#ff453a;--yellow:#ffd60a;
-      --r:12px;--r-sm:8px;
-    }
-    html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.5}
-    a{color:inherit;text-decoration:none}
-    button{font-family:inherit;cursor:pointer}
-    input,textarea,select{font-family:inherit}
-    ul{list-style:none}
-
-    /* LOGIN */
-    #login-screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--bg);z-index:1000;transition:opacity 0.3s}
-    #login-screen.hidden{opacity:0;pointer-events:none}
-    .login-box{width:100%;max-width:380px;padding:0 24px;display:flex;flex-direction:column;align-items:center}
-    .login-logo{width:64px;height:64px;border-radius:18px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:36px;font-weight:700;color:#fff;margin-bottom:28px}
-    .login-box h1{font-size:24px;font-weight:600;margin-bottom:6px;text-align:center}
-    .login-box p{font-size:14px;color:var(--text3);margin-bottom:32px;text-align:center}
-    .login-field{width:100%;margin-bottom:12px}
-    .login-field input{width:100%;padding:13px 16px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-size:15px;outline:none;transition:border-color 0.15s}
-    .login-field input:focus{border-color:var(--accent)}
-    .login-submit{width:100%;padding:13px;margin-top:4px;background:var(--accent);color:#fff;border:none;border-radius:var(--r);font-size:15px;font-weight:500;cursor:pointer;transition:background 0.15s,transform 0.1s}
-    .login-submit:hover{background:var(--accent-h)}
-    .login-submit:active{transform:scale(0.98)}
-    .login-error{font-size:13px;color:var(--red);text-align:center;margin-top:12px;min-height:18px}
-
-    /* LAYOUT */
-    #app{display:none;height:100vh;overflow:hidden;flex-direction:column}
-    #app.visible{display:flex}
-    .topbar{height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0}
-    .topbar-left{display:flex;align-items:center;gap:12px}
-    .topbar-logo{font-size:16px;font-weight:700;letter-spacing:-0.02em}
-    .topbar-badge{font-size:10px;font-weight:600;padding:2px 8px;border-radius:6px;background:rgba(0,113,227,0.18);color:var(--accent);text-transform:uppercase;letter-spacing:0.06em}
-    .topbar-right{display:flex;align-items:center;gap:8px}
-    .topbar-btn{padding:6px 14px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:none;transition:background 0.15s}
-    .topbar-btn-ghost{background:var(--bg3);color:var(--text2)}
-    .topbar-btn-ghost:hover{background:var(--bg4)}
-    .topbar-btn-primary{background:var(--accent);color:#fff}
-    .topbar-btn-primary:hover{background:var(--accent-h)}
-    .topbar-btn-primary:disabled{background:var(--bg4);color:var(--text4);cursor:not-allowed}
-    .main-area{display:flex;flex:1;overflow:hidden}
-
-    /* Sidebar */
-    .sidebar{width:200px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);padding:16px 12px;overflow-y:auto}
-    .sidebar-label{font-size:11px;font-weight:600;color:var(--text4);text-transform:uppercase;letter-spacing:0.06em;padding:0 10px;margin-bottom:6px}
-    .sidebar-item{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;font-size:13px;font-weight:500;color:var(--text3);cursor:pointer;transition:background 0.12s,color 0.12s;border:none;background:none;width:100%;text-align:left;margin-bottom:2px}
-    .sidebar-item:hover{background:var(--bg3);color:var(--text2)}
-    .sidebar-item.active{background:var(--bg3);color:var(--text)}
-    .content{flex:1;overflow-y:auto;padding:28px 32px;background:var(--bg)}
-
-    /* Setup banner */
-    .setup-banner{display:flex;align-items:flex-start;gap:14px;background:rgba(255,214,10,0.08);border:1px solid rgba(255,214,10,0.22);border-radius:var(--r);padding:16px 20px;margin-bottom:24px}
-    .setup-banner-icon{font-size:22px;flex-shrink:0}
-    .setup-banner-body{flex:1}
-    .setup-banner-title{font-size:13px;font-weight:600;color:var(--yellow);margin-bottom:4px}
-    .setup-banner-sub{font-size:12px;color:var(--text3);line-height:1.55}
-    .setup-banner-btn{margin-top:10px;padding:6px 16px;background:var(--yellow);color:#000;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer}
-    .setup-banner-btn:hover{opacity:0.85}
-
-    /* GH status bar */
-    .gh-status-bar{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text3);margin-bottom:20px;padding:10px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:8px}
-    .gh-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-    .gh-dot.ok{background:var(--green)}
-    .gh-dot.err{background:var(--red)}
-    .gh-dot.none{background:var(--text4)}
-    .gh-status-text{flex:1}
-    .gh-status-link{color:var(--accent);cursor:pointer;font-weight:500}
-    .gh-status-link:hover{text-decoration:underline}
-
-    /* Stats */
-    .stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
-    .stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:20px}
-    .stat-label{font-size:11px;color:var(--text4);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px}
-    .stat-value{font-size:28px;font-weight:700;color:var(--text);letter-spacing:-0.02em}
-    .stat-sub{font-size:12px;color:var(--text3);margin-top:4px}
-
-    /* Table */
-    .table-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
-    .table-title{font-size:17px;font-weight:600;color:var(--text)}
-    .add-btn{display:flex;align-items:center;gap:6px;padding:8px 16px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;transition:background 0.15s}
-    .add-btn:hover{background:var(--accent-h)}
-    .product-table{width:100%;border-collapse:collapse;background:var(--bg2);border-radius:var(--r);overflow:hidden;border:1px solid var(--border)}
-    .product-table th{padding:11px 16px;text-align:left;font-size:11px;font-weight:600;color:var(--text4);text-transform:uppercase;letter-spacing:0.06em;background:var(--bg3);border-bottom:1px solid var(--border)}
-    .product-table td{padding:12px 16px;font-size:13px;color:var(--text2);border-bottom:1px solid var(--border);vertical-align:middle}
-    .product-table tr:last-child td{border-bottom:none}
-    .product-table tr:hover td{background:rgba(255,255,255,0.02)}
-    .tbl-thumb{width:38px;height:38px;border-radius:6px;object-fit:cover;border:1px solid var(--border);flex-shrink:0}
-    .tbl-no-img{width:38px;height:38px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--text4)}
-    .tbl-name-cell{display:flex;align-items:center;gap:10px}
-    .tbl-name{font-weight:500;color:var(--text)}
-    .tbl-cat{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px;background:rgba(0,113,227,0.14);color:var(--accent);text-transform:uppercase;letter-spacing:0.04em}
-    .tbl-price{font-weight:600;color:var(--text);font-variant-numeric:tabular-nums}
-    .tbl-avail-yes{color:var(--green);font-weight:500}
-    .tbl-avail-no{color:var(--red);font-weight:500}
-    .tbl-actions{display:flex;gap:6px}
-    .tbl-btn{padding:5px 12px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;border:none;transition:background 0.12s}
-    .tbl-btn-edit{background:var(--bg4);color:var(--text2)}
-    .tbl-btn-edit:hover{background:var(--border2)}
-    .tbl-btn-del{background:rgba(255,69,58,0.12);color:var(--red)}
-    .tbl-btn-del:hover{background:rgba(255,69,58,0.22)}
-    .table-empty{text-align:center;padding:56px;color:var(--text3);font-size:14px;line-height:2}
-
-    /* Panel */
-    .panel-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.65);backdrop-filter:blur(4px);z-index:200;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.2s}
-    .panel-overlay.open{opacity:1;pointer-events:auto}
-    .panel{width:100%;max-width:580px;max-height:92vh;background:var(--bg2);border-radius:var(--r);border:1px solid var(--border);display:flex;flex-direction:column;transform:translateY(20px);transition:transform 0.22s;overflow:hidden}
-    .panel-overlay.open .panel{transform:translateY(0)}
-    .panel-head{display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid var(--border);flex-shrink:0}
-    .panel-title{font-size:16px;font-weight:600;color:var(--text)}
-    .panel-close{width:28px;height:28px;border-radius:50%;background:var(--bg3);border:none;color:var(--text3);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.12s}
-    .panel-close:hover{background:var(--bg4)}
-    .panel-body{flex:1;overflow-y:auto;padding:24px}
-    .panel-footer{display:flex;justify-content:flex-end;gap:10px;padding:16px 24px;border-top:1px solid var(--border);flex-shrink:0}
-
-    /* Fields */
-    .field{margin-bottom:18px}
-    .field-label{display:block;font-size:12px;font-weight:500;color:var(--text3);margin-bottom:7px}
-    .field-label span{color:var(--red)}
-    .field input,.field textarea,.field select{width:100%;padding:10px 13px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--text);font-size:14px;outline:none;transition:border-color 0.15s}
-    .field input:focus,.field textarea:focus,.field select:focus{border-color:var(--accent)}
-    .field input.err,.field textarea.err,.field select.err{border-color:var(--red)!important;background:rgba(255,69,58,0.05)}
-    .field textarea{min-height:80px;resize:vertical;line-height:1.5}
-    .field select option{background:var(--bg3)}
-    .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    .field-hint{font-size:11px;color:var(--text4);margin-top:5px;line-height:1.5}
-    .price-preview{font-size:12px;color:var(--green);margin-top:5px;font-weight:500;min-height:16px;letter-spacing:0.01em}
-
-    /* Image upload */
-    .img-list{display:flex;flex-direction:column;gap:8px;margin-bottom:10px}
-    .img-row{display:flex;gap:8px;align-items:center;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-sm);padding:8px 10px}
-    .img-row input[type=text]{flex:1;padding:4px 8px;background:transparent;border:none;color:var(--text);font-size:13px;outline:none}
-    .img-del{width:28px;height:28px;border-radius:6px;background:rgba(255,69,58,0.1);border:none;color:var(--red);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background 0.12s}
-    .img-del:hover{background:rgba(255,69,58,0.2)}
-    .img-add{display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:var(--r-sm);background:var(--bg3);border:1px solid var(--border);color:var(--text3);font-size:12px;font-weight:500;cursor:pointer;transition:background 0.12s,color 0.12s}
-    .img-add:hover{background:var(--bg4);color:var(--text2)}
-    .img-compress-bar{display:none;align-items:center;gap:8px;font-size:12px;color:var(--yellow);padding:9px 12px;background:rgba(255,214,10,0.08);border:1px solid rgba(255,214,10,0.18);border-radius:var(--r-sm);margin-bottom:8px}
-    .img-compress-bar.show{display:flex}
-    @keyframes spin{to{transform:rotate(360deg)}}
-    .spin{display:inline-block;width:13px;height:13px;border:2px solid rgba(255,214,10,0.3);border-top-color:var(--yellow);border-radius:50%;animation:spin 0.6s linear infinite;flex-shrink:0}
-
-    /* Toggle */
-    .toggle-row{display:flex;align-items:center;justify-content:space-between;gap:16px}
-    .toggle{position:relative;width:44px;height:24px;cursor:pointer;flex-shrink:0}
-    .toggle input{opacity:0;width:0;height:0;position:absolute}
-    .toggle-track{position:absolute;inset:0;border-radius:12px;background:var(--bg4);transition:background 0.2s}
-    .toggle input:checked + .toggle-track{background:var(--green)}
-    .toggle-knob{position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.3)}
-    .toggle input:checked ~ .toggle-knob{transform:translateX(20px)}
-
-    /* Settings */
-    .settings-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:24px;margin-bottom:20px}
-    .settings-card h3{font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px}
-    .settings-card > p{font-size:13px;color:var(--text3);margin-bottom:20px;line-height:1.55}
-    .steps-guide{display:flex;flex-direction:column;gap:12px;margin-bottom:22px;padding:16px;background:var(--bg3);border-radius:var(--r-sm);border:1px solid var(--border)}
-    .step-item{display:flex;gap:12px;align-items:flex-start}
-    .step-num{width:22px;height:22px;border-radius:50%;background:rgba(0,113,227,0.2);color:var(--accent);font-size:11px;font-weight:700;flex-shrink:0;display:flex;align-items:center;justify-content:center}
-    .step-text{font-size:13px;color:var(--text3);line-height:1.6;padding-top:2px}
-    .step-text a{color:var(--accent)}
-    .step-text code{background:var(--bg4);padding:1px 6px;border-radius:4px;font-size:12px;color:var(--text2)}
-    .gh-field{margin-bottom:14px}
-    .gh-field label{display:block;font-size:12px;font-weight:500;color:var(--text3);margin-bottom:6px}
-    .gh-field label span{color:var(--red)}
-    .gh-field input{width:100%;padding:10px 13px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--text);font-size:14px;outline:none;transition:border-color 0.15s}
-    .gh-field input:focus{border-color:var(--accent)}
-    .gh-field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    .gh-actions{display:flex;align-items:center;gap:10px;margin-top:6px;flex-wrap:wrap}
-    .publish-status{display:none;margin-top:14px;padding:12px 16px;border-radius:var(--r-sm);font-size:13px;line-height:1.55}
-    .publish-status.show{display:block}
-    .publish-status.ok{background:rgba(50,215,75,0.1);color:var(--green)}
-    .publish-status.err{background:rgba(255,69,58,0.1);color:var(--red)}
-    .publish-status.loading{background:rgba(255,214,10,0.08);color:var(--yellow)}
-    .danger-zone{background:rgba(255,69,58,0.06);border:1px solid rgba(255,69,58,0.18);border-radius:var(--r);padding:20px 24px}
-    .danger-zone h4{font-size:14px;font-weight:600;color:var(--red);margin-bottom:6px}
-    .danger-zone p{font-size:13px;color:var(--text3);margin-bottom:14px}
-
-    /* Buttons */
-    .btn-primary{padding:9px 20px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;transition:background 0.15s}
-    .btn-primary:hover{background:var(--accent-h)}
-    .btn-secondary{padding:9px 20px;background:var(--bg3);color:var(--text2);border:1px solid var(--border);border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;transition:background 0.12s}
-    .btn-secondary:hover{background:var(--bg4)}
-    .btn-danger{padding:8px 16px;border-radius:8px;font-size:13px;font-weight:500;background:rgba(255,69,58,0.1);color:var(--red);border:1px solid rgba(255,69,58,0.25);cursor:pointer;transition:background 0.12s}
-    .btn-danger:hover{background:rgba(255,69,58,0.2)}
-
-    /* Publish modal */
-    .pub-modal{display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.72);backdrop-filter:blur(8px);align-items:center;justify-content:center}
-    .pub-modal.show{display:flex}
-    .pub-box{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:28px;width:90%;max-width:480px;display:flex;flex-direction:column;gap:16px}
-    .pub-header{display:flex;justify-content:space-between;align-items:center}
-    .pub-title{font-weight:600;font-size:15px;color:var(--text2)}
-    .pub-close-btn{background:none;border:none;color:var(--text3);font-size:22px;cursor:pointer;line-height:1;padding:2px 8px}
-    .pub-close-btn:hover{color:var(--text)}
-    .pub-summary{padding:14px 16px;border-radius:var(--r-sm);font-size:14px;font-weight:500;display:none}
-    .pub-summary.ok{display:block;background:rgba(50,215,75,0.13);color:var(--green)}
-    .pub-summary.err{display:block;background:rgba(255,69,58,0.13);color:var(--red)}
-    .pub-summary.loading{display:block;background:rgba(255,214,10,0.08);color:var(--yellow)}
-    .pub-log-toggle{font-size:12px;color:var(--text4);cursor:pointer;display:none;align-items:center;gap:4px}
-    .pub-log-toggle:hover{color:var(--text3)}
-    .pub-log{font-family:'SF Mono',Menlo,monospace;font-size:11px;background:#000;border-radius:8px;padding:14px;max-height:220px;overflow-y:auto;line-height:1.8;color:#e5e5ea;white-space:pre-wrap;word-break:break-all;display:none;margin-top:-8px}
-    .pub-log.show{display:block}
-    .pub-footer{display:flex;justify-content:flex-end;gap:10px}
-
-    /* Toast */
-    .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(8px);background:var(--bg3);color:var(--text);padding:11px 20px;border-radius:10px;font-size:13px;font-weight:500;box-shadow:0 8px 24px rgba(0,0,0,0.5);opacity:0;transition:opacity 0.2s,transform 0.2s;pointer-events:none;z-index:9999;max-width:90vw;text-align:center}
-    .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-
-    @media(max-width:768px){
-      .sidebar{display:none}
-      .stat-row{grid-template-columns:1fr 1fr}
-      .content{padding:20px 16px}
-      .topbar-right .topbar-btn-ghost:not(#logout-btn){display:none}
-      .panel{max-width:100%;max-height:96vh;border-radius:var(--r) var(--r) 0 0;align-self:flex-end}
-      .panel-overlay{align-items:flex-end}
-      .field-row,.gh-field-row{grid-template-columns:1fr}
-    }
-  </style>
+  <link rel="stylesheet" href="assets/css/admin.css">
 </head>
 <body>
 
-<!-- LOGIN -->
+<!-- ══════════════════ LOGIN SCREEN ══════════════════ -->
 <div id="login-screen">
-  <div class="login-box">
-    <div class="login-logo">S</div>
-    <h1>Sentraq Admin</h1>
-    <p>Masuk untuk mengelola produk</p>
-    <div class="login-field">
-      <input type="password" id="login-pw" placeholder="Password" autocomplete="current-password">
+  <div class="login-blobs" aria-hidden="true">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+  </div>
+  <canvas id="login-particles" aria-hidden="true"></canvas>
+
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="login-logo-mark">S</div>
     </div>
-    <button class="login-submit" id="login-btn">Masuk</button>
-    <p class="login-error" id="login-error"></p>
+    <div class="login-title">Sentraq Admin</div>
+    <div class="login-sub">Masukkan password untuk melanjutkan</div>
+
+    <form id="login-form" autocomplete="off">
+      <div class="login-field">
+        <label class="login-label" for="pw-input">Password</label>
+        <div class="login-input-wrap">
+          <input id="pw-input" class="login-input" type="password"
+                 placeholder="Password admin" autocomplete="current-password">
+          <button type="button" class="login-eye" id="pw-toggle" aria-label="Tampilkan password">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="eye-icon">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+          </button>
+        </div>
+        <div class="login-error" id="login-error">Password salah. Coba lagi.</div>
+      </div>
+      <button type="submit" class="btn btn-primary login-btn">Masuk</button>
+    </form>
+
+    <div class="login-hint">
+      <a id="hint-change-pw">Ganti password</a>
+    </div>
   </div>
 </div>
 
-<!-- APP -->
-<div id="app">
-  <!-- Topbar -->
-  <div class="topbar">
-    <div class="topbar-left">
-      <span class="topbar-logo">Sentraq</span>
-      <span class="topbar-badge">Admin</span>
-    </div>
-    <div class="topbar-right">
-      <a href="index.html" class="topbar-btn topbar-btn-ghost" target="_blank">Lihat Website &#8599;</a>
-      <button class="topbar-btn topbar-btn-primary" id="publish-btn">Publish ke GitHub</button>
-      <button class="topbar-btn topbar-btn-ghost" id="logout-btn">Keluar</button>
-    </div>
-  </div>
+<!-- ══════════════════ ADMIN SHELL ══════════════════ -->
+<div id="admin-shell" class="hidden">
 
-  <!-- PUBLISH MODAL -->
-  <div class="pub-modal" id="publish-modal">
-    <div class="pub-box">
-      <div class="pub-header">
-        <span class="pub-title">Publish ke GitHub</span>
-        <button class="pub-close-btn" id="publish-modal-close">&#215;</button>
-      </div>
-      <div class="pub-summary loading" id="pub-summary">&#8987; Memproses&hellip;</div>
-      <div class="pub-log-toggle" id="pub-log-toggle">
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-        Lihat detail log
-      </div>
-      <div class="pub-log" id="publish-log"></div>
-      <div class="pub-footer" id="publish-modal-footer" style="display:none">
-        <button id="publish-modal-ok" class="btn-primary">OK</button>
+  <!-- SIDEBAR -->
+  <aside class="sidebar" role="navigation" aria-label="Admin navigation">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">
+        <div class="sidebar-logo-mark">S</div>
+        <div class="sidebar-wordmark">
+          Sentraq
+          <span>Admin Panel</span>
+        </div>
       </div>
     </div>
-  </div>
-
-  <div class="main-area">
-    <!-- Sidebar -->
-    <aside class="sidebar">
-      <div class="sidebar-label" style="margin-bottom:8px;margin-top:4px">Menu</div>
-      <button class="sidebar-item active" data-view="products">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+    <nav class="sidebar-nav">
+      <div class="sidebar-section-label">Kelola</div>
+      <button class="nav-item active" data-view="products">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><polyline points="8 21 12 17 16 21"/></svg>
         Produk
       </button>
-      <button class="sidebar-item" data-view="settings">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      <button class="nav-item" data-view="publish">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+        Publikasi
+      </button>
+      <div class="sidebar-section-label">Akun</div>
+      <button class="nav-item" data-view="settings">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         Pengaturan
       </button>
-    </aside>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="logout-btn" id="logout-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Keluar
+      </button>
+    </div>
+  </aside>
+  <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
 
-    <!-- Content -->
-    <div class="content">
+  <!-- MAIN AREA -->
+  <div class="main-area">
+    <header class="topbar">
+      <button class="topbar-menu-btn" id="sidebar-toggle" aria-label="Buka menu" aria-expanded="false">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <div class="topbar-title" id="topbar-title">Produk</div>
+      <div class="topbar-actions">
+        <button class="btn btn-ghost btn-sm" id="btn-import-top">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Import
+        </button>
+        <button class="btn btn-primary btn-sm" id="btn-export-top">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export JSON
+        </button>
+        <input type="file" id="import-file-input" accept=".json" style="display:none">
+      </div>
+    </header>
+
+    <div class="content-area">
 
       <!-- PRODUCTS VIEW -->
-      <div id="view-products">
-        <!-- Setup banner: shown when GitHub not configured -->
-        <div id="setup-banner" class="setup-banner" style="display:none">
-          <div class="setup-banner-icon">&#9889;</div>
-          <div class="setup-banner-body">
-            <div class="setup-banner-title">GitHub belum dikonfigurasi</div>
-            <div class="setup-banner-sub">Kamu bisa tambah &amp; edit produk, tapi perubahan tidak akan live ke website sampai GitHub dikonfigurasi di Pengaturan.</div>
-            <button class="setup-banner-btn" id="banner-setup-btn">Setup GitHub &#8594;</button>
+      <div class="view active" id="view-products">
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="stat-label">Total Produk</div>
+            <div class="stat-val accent" id="stat-total">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Tersedia</div>
+            <div class="stat-val success" id="stat-avail">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Terjual</div>
+            <div class="stat-val danger" id="stat-sold">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Kategori</div>
+            <div class="stat-val" id="stat-cats">0</div>
           </div>
         </div>
 
-        <!-- GH status: shown when configured -->
-        <div id="gh-status-bar" class="gh-status-bar" style="display:none">
-          <div class="gh-dot ok" id="gh-dot"></div>
-          <span class="gh-status-text" id="gh-status-text">Siap publish</span>
-          <span class="gh-status-link" id="gh-status-link">Ubah settings</span>
-        </div>
-
-        <div class="stat-row">
-          <div class="stat-card"><div class="stat-label">Total Produk</div><div class="stat-value" id="stat-total">0</div><div class="stat-sub">Semua kategori</div></div>
-          <div class="stat-card"><div class="stat-label">Tersedia</div><div class="stat-value" id="stat-avail">0</div><div class="stat-sub">Siap dijual</div></div>
-          <div class="stat-card"><div class="stat-label">MacBook</div><div class="stat-value" id="stat-mac">0</div><div class="stat-sub">Unit tersedia</div></div>
-          <div class="stat-card"><div class="stat-label">Laptop</div><div class="stat-value" id="stat-laptop">0</div><div class="stat-sub">Unit tersedia</div></div>
-        </div>
-
-        <div class="table-header">
-          <h2 class="table-title">Katalog Produk</h2>
-          <button class="add-btn" id="add-product-btn">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        <div class="view-header">
+          <div class="view-heading">Daftar Produk <span id="product-count"></span></div>
+          <button class="btn btn-primary btn-sm" id="btn-add-product">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             Tambah Produk
           </button>
         </div>
 
-        <table class="product-table">
-          <thead><tr>
-            <th>Nama Produk</th><th>Kategori</th><th>Harga</th><th>Status</th><th>Aksi</th>
-          </tr></thead>
-          <tbody id="product-tbody"></tbody>
-        </table>
+        <div class="table-wrap">
+          <div class="table-toolbar">
+            <input class="search-input" id="search-input" type="search" placeholder="Cari nama produk...">
+            <select class="category-filter" id="category-filter">
+              <option value="">Semua kategori</option>
+              <option value="macbook">MacBook</option>
+              <option value="iphone">iPhone</option>
+              <option value="ipad">iPad</option>
+              <option value="laptop">Laptop</option>
+            </select>
+          </div>
+          <div style="overflow-x:auto">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:48px"></th>
+                  <th>Produk</th>
+                  <th class="hide-sm">Kategori</th>
+                  <th class="hide-sm">Harga</th>
+                  <th>Status</th>
+                  <th style="text-align:right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="product-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- PUBLISH VIEW -->
+      <div class="view" id="view-publish">
+        <div class="view-heading" style="margin-bottom:20px">Publikasi ke Website</div>
+
+        <div class="publish-card">
+          <h3>Download &amp; Upload Manual</h3>
+          <p>Tidak perlu token GitHub. Cukup download file JSON, lalu upload ke repositori melalui browser atau GitHub Desktop.</p>
+          <div class="publish-steps">
+            <div class="publish-step">
+              <div class="step-num">1</div>
+              <div class="step-text">Klik <strong>Download products.json</strong> untuk mengunduh data produk terbaru.</div>
+            </div>
+            <div class="publish-step">
+              <div class="step-num">2</div>
+              <div class="step-text">Buka repositori GitHub kamu, navigasi ke file <code>products.json</code> di root folder.</div>
+            </div>
+            <div class="publish-step">
+              <div class="step-num">3</div>
+              <div class="step-text">Klik ikon pensil (Edit) &rarr; <strong>"Upload file"</strong> &rarr; pilih file yang baru didownload, atau drag &amp; drop ke halaman GitHub.</div>
+            </div>
+            <div class="publish-step">
+              <div class="step-num">4</div>
+              <div class="step-text">Klik <strong>Commit changes</strong>. Website otomatis update dalam beberapa detik.</div>
+            </div>
+          </div>
+          <div class="publish-actions">
+            <button class="btn btn-primary" id="btn-export-publish">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Download products.json
+            </button>
+            <button class="btn btn-secondary" id="btn-import-publish">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Import products.json
+            </button>
+          </div>
+        </div>
+
+        <div class="publish-card">
+          <h3>Preview JSON</h3>
+          <p>Isi dari products.json yang akan dipublikasi:</p>
+          <pre id="json-preview" style="font-size:12px;background:var(--bg-2);border-radius:10px;padding:16px;overflow:auto;max-height:340px;line-height:1.6;font-family:'SF Mono','Fira Code',monospace;color:var(--text-2)"></pre>
+        </div>
       </div>
 
       <!-- SETTINGS VIEW -->
-      <div id="view-settings" style="display:none">
-        <h2 style="font-size:22px;font-weight:700;margin-bottom:6px">Pengaturan</h2>
-        <p style="color:var(--text3);font-size:14px;margin-bottom:28px;line-height:1.55">Konfigurasi GitHub untuk auto-publish produk ke website.</p>
+      <div class="view" id="view-settings">
+        <div class="view-heading" style="margin-bottom:20px">Pengaturan</div>
 
-        <div class="settings-card">
-          <h3>&#128279; GitHub Auto-Publish</h3>
-          <p>Hubungkan admin ke repo GitHub agar perubahan produk langsung live ke website.</p>
-          <div class="steps-guide">
-            <div class="step-item">
-              <div class="step-num">1</div>
-              <div class="step-text">Buka <a href="https://github.com/settings/tokens/new" target="_blank">github.com/settings/tokens/new</a>, isi nama token (misal: <code>sentraq-admin</code>), centang <code>repo</code>, klik <strong>Generate token</strong>, lalu <strong>copy tokennya</strong>.</div>
-            </div>
-            <div class="step-item">
-              <div class="step-num">2</div>
-              <div class="step-text">Paste token di field &ldquo;GitHub Token&rdquo; di bawah. Isi username GitHub dan nama repo-mu (misal: <code>sentraq</code> dan <code>sentraq.github.io</code>).</div>
-            </div>
-            <div class="step-item">
-              <div class="step-num">3</div>
-              <div class="step-text">Klik <strong>Simpan &amp; Test</strong>. Kalau muncul &#10003; Terhubung &mdash; selesai! Klik <strong>Publish ke GitHub</strong> setiap kali ada perubahan produk.</div>
-            </div>
+        <div class="settings-section">
+          <h3>Ganti Password</h3>
+          <p>Segera ubah password setelah pertama login.</p>
+          <div class="field">
+            <label for="current-pw">Password Lama</label>
+            <input id="current-pw" type="password" placeholder="Password saat ini">
           </div>
-
-          <div class="gh-field">
-            <label>GitHub Personal Access Token <span>*</span></label>
-            <input type="password" id="gh-token" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" autocomplete="off">
+          <div class="field">
+            <label for="new-pw">Password Baru</label>
+            <input id="new-pw" type="password" placeholder="Minimal 6 karakter">
           </div>
-          <div class="gh-field-row">
-            <div class="gh-field">
-              <label>Username GitHub <span>*</span></label>
-              <input type="text" id="gh-user" placeholder="sentraq" autocomplete="off">
-            </div>
-            <div class="gh-field">
-              <label>Nama Repo <span>*</span></label>
-              <input type="text" id="gh-repo" placeholder="sentraq.github.io" autocomplete="off">
-            </div>
+          <div class="field">
+            <label for="confirm-pw">Konfirmasi Password Baru</label>
+            <input id="confirm-pw" type="password" placeholder="Ulangi password baru">
           </div>
-          <div class="gh-field" style="max-width:180px">
-            <label>Branch</label>
-            <input type="text" id="gh-branch" placeholder="main">
-          </div>
-          <div class="gh-actions">
-            <button class="btn-primary" id="save-gh-btn">&#128190; Simpan &amp; Test</button>
-            <button class="btn-secondary" id="test-gh-btn">&#128268; Test Koneksi</button>
-          </div>
-          <div class="publish-status" id="gh-status"></div>
+          <button class="btn btn-primary btn-sm" id="btn-change-pw">Simpan Password</button>
         </div>
 
-        <div class="settings-card">
-          <h3>&#128272; Ganti Password Admin</h3>
-          <p>Password default: <code style="background:var(--bg3);padding:2px 8px;border-radius:4px;font-size:12px">sentraq123</code> &mdash; segera ubah setelah pertama login.</p>
-          <div class="field-row" style="max-width:400px">
-            <div class="field">
-              <label class="field-label">Password Baru <span>*</span></label>
-              <input type="password" id="new-pw1" placeholder="Min. 6 karakter">
-            </div>
-            <div class="field">
-              <label class="field-label">Konfirmasi <span>*</span></label>
-              <input type="password" id="new-pw2" placeholder="Ulangi password">
-            </div>
+        <div class="settings-section">
+          <h3>Data Produk</h3>
+          <p>Reset semua data produk ke daftar default atau hapus seluruhnya.</p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="btn btn-secondary btn-sm" id="btn-load-defaults">Muat Produk Default</button>
+            <button class="btn btn-danger btn-sm" id="btn-clear-all">Hapus Semua Produk</button>
           </div>
-          <button class="btn-primary" id="change-pw-btn">Ganti Password</button>
-        </div>
-
-        <div class="danger-zone">
-          <h4>&#9888; Danger Zone</h4>
-          <p>Hapus token GitHub dan konfigurasi dari browser ini. Data produk tidak akan terpengaruh.</p>
-          <button class="btn-danger" id="reset-btn">Reset Konfigurasi GitHub</button>
         </div>
       </div>
 
+    </div><!-- end content-area -->
+  </div><!-- end main-area -->
+</div><!-- end admin-shell -->
+
+<!-- PRODUCT MODAL -->
+<div class="modal-backdrop" id="product-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title">Tambah Produk</div>
+      <button class="modal-close" id="modal-close-btn" aria-label="Tutup">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <form id="product-form" autocomplete="off">
+        <input type="hidden" id="f-id">
+
+        <div class="field">
+          <label for="f-name">Nama Produk *</label>
+          <input id="f-name" type="text" placeholder="contoh: MacBook Pro 2020 i5" required>
+        </div>
+
+        <div class="field-row-2">
+          <div class="field">
+            <label for="f-category">Kategori *</label>
+            <select id="f-category" required>
+              <option value="">Pilih kategori</option>
+              <option value="macbook">MacBook</option>
+              <option value="iphone">iPhone</option>
+              <option value="ipad">iPad</option>
+              <option value="laptop">Laptop</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="f-price">Harga (Rp) *</label>
+            <input id="f-price" type="number" min="0" step="1000" placeholder="contoh: 7500000" required>
+            <div class="price-preview" id="price-preview"></div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="f-specs">Spesifikasi</label>
+          <input id="f-specs" type="text" placeholder="contoh: Intel i5 · 16GB RAM · 512GB SSD">
+          <div class="field-hint">Pisahkan tiap spek dengan &middot; (titik tengah)</div>
+        </div>
+
+        <div class="field">
+          <label for="f-desc">Deskripsi / Kondisi</label>
+          <textarea id="f-desc" placeholder="Deskripsikan kondisi produk..."></textarea>
+        </div>
+
+        <div class="field">
+          <label for="f-wa">Pesan WhatsApp (opsional)</label>
+          <input id="f-wa" type="text" placeholder="Kosongkan untuk auto-generate">
+          <div class="field-hint">Dikosongkan = otomatis dibuat dari nama &amp; harga</div>
+        </div>
+
+        <div class="field">
+          <label>Foto Produk</label>
+          <div class="img-upload-area" id="drop-zone">
+            <div class="img-upload-icon">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            </div>
+            <div class="img-upload-text"><span>Klik untuk upload</span> atau drag &amp; drop</div>
+            <div class="img-upload-hint">JPG, PNG, WebP &mdash; maks 5 foto, otomatis dikompres</div>
+            <input type="file" id="f-images" accept="image/*" multiple style="display:none">
+          </div>
+          <div class="img-previews" id="img-previews"></div>
+        </div>
+
+        <div class="field" style="margin-top:4px">
+          <div class="toggle-row">
+            <div>
+              <div class="toggle-label">Tersedia</div>
+              <div class="toggle-sub">Produk ini dapat dibeli pembeli</div>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="f-available" checked>
+              <div class="toggle-track"></div>
+            </label>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary btn-sm" id="modal-cancel-btn">Batal</button>
+      <button class="btn btn-primary btn-sm" id="modal-save-btn">Simpan Produk</button>
     </div>
   </div>
 </div>
 
-<!-- PRODUCT FORM PANEL -->
-<div class="panel-overlay" id="panel-overlay">
-  <div class="panel">
-    <div class="panel-head">
-      <h3 class="panel-title" id="panel-title">Tambah Produk</h3>
-      <button class="panel-close" id="panel-close">&#215;</button>
-    </div>
-    <div class="panel-body">
-      <input type="hidden" id="form-id">
+<!-- TOAST -->
+<div id="toast-container" aria-live="polite" aria-atomic="true"></div>
 
-      <div class="field">
-        <label class="field-label">Nama Produk <span>*</span></label>
-        <input type="text" id="form-name" placeholder="cth: MacBook Pro 2020 i5 Space Gray">
-      </div>
-
-      <div class="field-row">
-        <div class="field">
-          <label class="field-label">Kategori <span>*</span></label>
-          <select id="form-category">
-            <option value="macbook">MacBook</option>
-            <option value="iphone">iPhone</option>
-            <option value="ipad">iPad</option>
-            <option value="laptop">Laptop / PC</option>
-          </select>
-        </div>
-        <div class="field">
-          <label class="field-label">Harga (Rp) <span>*</span></label>
-          <input type="number" id="form-price" placeholder="cth: 7500000" min="0" step="1000">
-          <div class="price-preview" id="price-preview"></div>
-        </div>
-      </div>
-
-      <div class="field">
-        <label class="field-label">Spesifikasi <span>*</span></label>
-        <input type="text" id="form-specs" placeholder="cth: Intel Core i5 &middot; 16GB RAM &middot; 512GB SSD">
-        <p class="field-hint">Pisahkan poin spek dengan &middot; (titik tengah)</p>
-      </div>
-
-      <div class="field">
-        <label class="field-label">Deskripsi Kondisi</label>
-        <textarea id="form-desc" placeholder="cth: Kondisi mulus 95%, baterai 89%, lengkap dengan dus &amp; charger original&hellip;"></textarea>
-      </div>
-
-      <div class="field">
-        <label class="field-label">Foto Produk</label>
-        <div class="img-compress-bar" id="img-compress-bar">
-          <div class="spin"></div>
-          <span id="img-compress-msg">Mengkompresi foto&hellip;</span>
-        </div>
-        <div class="img-list" id="img-list"></div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="img-add" id="img-upload-btn" type="button">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-            Upload dari Device
-          </button>
-          <button class="img-add" id="img-add-btn" type="button">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Paste URL Foto
-          </button>
-        </div>
-        <input type="file" id="img-file-input" accept="image/jpeg,image/jpg,image/png,image/webp,image/heic" multiple style="display:none">
-        <p class="field-hint" style="margin-top:8px">Format: JPG, PNG, WebP &bull; Bisa pilih beberapa foto &bull; Otomatis dikompres</p>
-      </div>
-
-      <div class="field">
-        <div class="toggle-row">
-          <div>
-            <div style="font-size:14px;font-weight:500;color:var(--text2)">Status Ketersediaan</div>
-            <p class="field-hint" style="margin-top:3px">Aktif = Tersedia &bull; Nonaktif = Terjual / Tidak Tersedia</p>
-          </div>
-          <label class="toggle">
-            <input type="checkbox" id="form-available" checked>
-            <div class="toggle-track"></div>
-            <div class="toggle-knob"></div>
-          </label>
-        </div>
-      </div>
-
-    </div>
-    <div class="panel-footer">
-      <button class="btn-secondary" id="form-cancel">Batal</button>
-      <button class="btn-primary" id="form-save">Simpan Produk</button>
-    </div>
-  </div>
-</div>
-
-<div class="toast" id="toast"></div>
-
+<!-- ══════════════════ SCRIPT ══════════════════ -->
 <script>
-(function(){
-'use strict';
+(function () {
+  'use strict';
 
-var PW_KEY        = 'sentraq_admin_pw';
-var PRODUCTS_KEY  = 'sentraq_products';
-var GH_TOKEN_KEY  = 'sentraq_gh_token';
-var GH_USER_KEY   = 'sentraq_gh_user';
-var GH_REPO_KEY   = 'sentraq_gh_repo';
-var GH_BRANCH_KEY = 'sentraq_gh_branch';
-var DEFAULT_PW_HASH = '80a8d02f2e9169f3b5e951ace17ff10d1c91a03c4c664a86450244b633c5606a';
+  /* ── CONSTANTS ── */
+  var PW_KEY          = 'sentraq_admin_pw';
+  var PRODUCTS_KEY    = 'sentraq_products';
+  var DEFAULT_PW_HASH = '80a8d02f2e9169f3b5e951ace17ff10d1c91a03c4c664a86450244b633c5606a';
 
-async function sha256(str){
-  var buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
-  return Array.from(new Uint8Array(buf)).map(function(b){ return b.toString(16).padStart(2,'0'); }).join('');
-}
-function getProducts(){ try{ var r=localStorage.getItem(PRODUCTS_KEY); return r?JSON.parse(r):null; }catch(e){ return null; } }
-function saveProducts(arr){ localStorage.setItem(PRODUCTS_KEY, JSON.stringify(arr)); }
-function getPwHash(){ return localStorage.getItem(PW_KEY)||DEFAULT_PW_HASH; }
-function savePwHash(h){ localStorage.setItem(PW_KEY,h); }
-function formatRp(n){ return 'Rp\u00a0'+Number(n).toLocaleString('id-ID'); }
-function generateId(name){ return name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').substring(0,40)+'-'+Date.now().toString(36); }
-
-var toastTimer;
-function toast(msg,dur){ var el=document.getElementById('toast'); el.textContent=msg; el.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(function(){ el.classList.remove('show'); },dur||3400); }
-
-/* LOGIN */
-document.getElementById('login-pw').addEventListener('keydown',function(e){ if(e.key==='Enter') document.getElementById('login-btn').click(); });
-document.getElementById('login-btn').addEventListener('click',async function(){
-  var pw=document.getElementById('login-pw').value;
-  var errEl=document.getElementById('login-error');
-  if(!pw){ errEl.textContent='Masukkan password'; return; }
-  var h=await sha256(pw);
-  if(h===getPwHash()){
-    document.getElementById('login-screen').classList.add('hidden');
-    setTimeout(function(){ document.getElementById('login-screen').style.display='none'; document.getElementById('app').classList.add('visible'); initApp(); },300);
-  } else {
-    errEl.textContent='Password salah. Coba lagi.';
-    document.getElementById('login-pw').value='';
-    document.getElementById('login-pw').focus();
-  }
-});
-document.getElementById('logout-btn').addEventListener('click',function(){
-  document.getElementById('app').classList.remove('visible');
-  var ls=document.getElementById('login-screen');
-  ls.style.display='';
-  requestAnimationFrame(function(){ ls.classList.remove('hidden'); });
-  document.getElementById('login-pw').value='';
-  document.getElementById('login-error').textContent='';
-});
-
-/* APP */
-var products=[];
-function initApp(){
-  var stored=getProducts();
-  products=stored&&stored.length?stored:getDefaultProducts();
-  if(!stored||!stored.length) saveProducts(products);
-  renderTable(); updateStats(); initSidebar(); loadGhSettings(); updateGhStatusBar(); initPublish();
-}
-function getDefaultProducts(){
-  return [
-    {id:'macbook-pro-2020-i5',name:'MacBook Pro 2020 i5',category:'macbook',specs:'Intel Core i5 \u00b7 16GB RAM \u00b7 512GB SSD \u00b7 Space Gray',price:9500000,description:'Kondisi sangat mulus. Baterai 91%. Lengkap dengan charger original.',images:[],available:true,whatsapp:'Halo Sentraq, saya tertarik dengan MacBook Pro 2020 i5, masih tersedia?'},
-    {id:'macbook-pro-2018-silver',name:'MacBook Pro 2018 Touchbar',category:'macbook',specs:'Intel Core i7 \u00b7 16GB RAM \u00b7 256GB SSD \u00b7 Silver',price:8200000,description:'Touchbar berfungsi normal. Kondisi 90%. Garansi toko 30 hari.',images:[],available:true,whatsapp:'Halo Sentraq, saya tertarik dengan MacBook Pro 2018 Touchbar, masih tersedia?'},
-    {id:'hp-omen-rtx3060',name:'HP OMEN Gaming',category:'laptop',specs:'AMD Ryzen 7 \u00b7 RTX 3060 6GB \u00b7 16GB RAM \u00b7 512GB SSD',price:12500000,description:'Kondisi mulus, sudah upgrade thermal paste. Performa gaming optimal.',images:[],available:true,whatsapp:'Halo Sentraq, saya tertarik dengan HP OMEN Gaming, masih tersedia?'}
+  var DEFAULT_PRODUCTS = [
+    {
+      id: 'macbook-pro-2020-i5',
+      name: 'MacBook Pro 2020 i5',
+      category: 'macbook',
+      specs: 'Intel Core i5 · 16GB RAM · 512GB SSD · Space Gray',
+      price: 7500000,
+      description: 'MacBook Pro 2020 kondisi mulus, sudah ditest oleh tim Sentraq. Baterai prima, layar tanpa dead pixel, keyboard responsif.',
+      images: [],
+      available: true,
+      whatsapp: 'Halo Sentraq, saya tertarik dengan MacBook Pro 2020 i5 16GB 512GB harga Rp 7.500.000'
+    },
+    {
+      id: 'macbook-pro-2018-silver',
+      name: 'MacBook Pro 2018 Touchbar',
+      category: 'macbook',
+      specs: 'Intel Core i5 · 16GB RAM · 256GB SSD NVMe · Silver',
+      price: 6800000,
+      description: 'MacBook Pro 2018 lengkap dengan Touchbar. Kondisi baik, dikurasi dan diperiksa tim Sentraq.',
+      images: [],
+      available: true,
+      whatsapp: 'Halo Sentraq, saya tertarik dengan MacBook Pro 2018 Touchbar Silver 16GB 256GB harga Rp 6.800.000'
+    },
+    {
+      id: 'hp-omen-rtx3060',
+      name: 'HP OMEN Gaming',
+      category: 'laptop',
+      specs: 'Intel Core i7 · 16GB RAM · 512GB SSD · RTX 3060',
+      price: 15500000,
+      description: 'HP OMEN Gaming Laptop performa tinggi untuk gaming dan kreativitas. Kondisi prima.',
+      images: [],
+      available: true,
+      whatsapp: 'Halo Sentraq, saya tertarik dengan HP OMEN Gaming Laptop RTX 3060 harga Rp 15.500.000'
+    }
   ];
-}
 
-/* SIDEBAR */
-function initSidebar(){
-  document.querySelectorAll('.sidebar-item').forEach(function(btn){
-    btn.addEventListener('click',function(){
-      document.querySelectorAll('.sidebar-item').forEach(function(b){ b.classList.remove('active'); });
-      this.classList.add('active');
-      var v=this.dataset.view;
-      document.getElementById('view-products').style.display=v==='products'?'':'none';
-      document.getElementById('view-settings').style.display=v==='settings'?'':'none';
-    });
-  });
-}
-
-/* STATS */
-function updateStats(){
-  document.getElementById('stat-total').textContent=products.length;
-  document.getElementById('stat-avail').textContent=products.filter(function(p){ return p.available; }).length;
-  document.getElementById('stat-mac').textContent=products.filter(function(p){ return p.category==='macbook'&&p.available; }).length;
-  document.getElementById('stat-laptop').textContent=products.filter(function(p){ return p.category==='laptop'&&p.available; }).length;
-}
-
-/* GH STATUS BAR */
-function updateGhStatusBar(){
-  var token=localStorage.getItem(GH_TOKEN_KEY);
-  var user=localStorage.getItem(GH_USER_KEY);
-  var repo=localStorage.getItem(GH_REPO_KEY);
-  var banner=document.getElementById('setup-banner');
-  var bar=document.getElementById('gh-status-bar');
-  if(!token||!user||!repo){
-    banner.style.display='flex'; bar.style.display='none';
-  } else {
-    banner.style.display='none'; bar.style.display='flex';
-    document.getElementById('gh-status-text').textContent=user+'/'+repo+' \u00b7 Siap publish';
-  }
-}
-document.getElementById('banner-setup-btn').addEventListener('click',function(){ document.querySelector('[data-view="settings"]').click(); });
-document.getElementById('gh-status-link').addEventListener('click',function(){ document.querySelector('[data-view="settings"]').click(); });
-
-/* TABLE */
-function renderTable(){
-  var tbody=document.getElementById('product-tbody');
-  tbody.innerHTML='';
-  if(!products.length){
-    tbody.innerHTML='<tr><td colspan="5" class="table-empty"><div style="font-size:32px;margin-bottom:10px;opacity:0.35">&#128230;</div>Belum ada produk.<br>Klik <strong>Tambah Produk</strong> untuk mulai.</td></tr>';
-    return;
-  }
-  var catMap={macbook:'MacBook',iphone:'iPhone',ipad:'iPad',laptop:'Laptop'};
-  products.forEach(function(p,i){
-    var tr=document.createElement('tr');
-    var firstImg=(p.images||[]).find(function(u){ return u&&!u.startsWith('data:'); });
-    var thumbHtml=firstImg
-      ? '<img class="tbl-thumb" src="'+firstImg+'" alt="" onerror="this.parentElement.innerHTML=\'<div class=tbl-no-img>&#128247;</div>\'">'
-      : '<div class="tbl-no-img" style="font-size:16px">&#128247;</div>';
-    tr.innerHTML='<td><div class="tbl-name-cell">'+thumbHtml+'<span class="tbl-name">'+p.name+'</span></div></td>'+
-      '<td><span class="tbl-cat">'+(catMap[p.category]||p.category)+'</span></td>'+
-      '<td class="tbl-price">'+formatRp(p.price)+'</td>'+
-      '<td class="'+(p.available?'tbl-avail-yes':'tbl-avail-no')+'">'+(p.available?'\u2713 Tersedia':'\u2715 Terjual')+'</td>'+
-      '<td><div class="tbl-actions"><button class="tbl-btn tbl-btn-edit" data-i="'+i+'">Edit</button><button class="tbl-btn tbl-btn-del" data-i="'+i+'">Hapus</button></div></td>';
-    tbody.appendChild(tr);
-  });
-  tbody.querySelectorAll('.tbl-btn-edit').forEach(function(b){ b.addEventListener('click',function(){ openPanel(parseInt(this.dataset.i)); }); });
-  tbody.querySelectorAll('.tbl-btn-del').forEach(function(b){
-    b.addEventListener('click',function(){
-      var i=parseInt(this.dataset.i);
-      if(confirm('Hapus "'+products[i].name+'"? Tidak bisa dibatalkan.')){ products.splice(i,1); saveProducts(products); renderTable(); updateStats(); toast('Produk dihapus'); }
-    });
-  });
-}
-
-/* PANEL */
-var editIdx=-1;
-document.getElementById('add-product-btn').addEventListener('click',function(){ openPanel(-1); });
-document.getElementById('panel-close').addEventListener('click',closePanel);
-document.getElementById('form-cancel').addEventListener('click',closePanel);
-document.getElementById('panel-overlay').addEventListener('click',function(e){ if(e.target===this) closePanel(); });
-
-function openPanel(idx){
-  editIdx=idx;
-  var isEdit=idx>=0;
-  document.getElementById('panel-title').textContent=isEdit?'Edit Produk':'Tambah Produk';
-  document.getElementById('img-list').innerHTML='';
-  document.getElementById('price-preview').textContent='';
-  ['form-name','form-price','form-specs'].forEach(function(id){ document.getElementById(id).classList.remove('err'); });
-  if(isEdit){
-    var p=products[idx];
-    document.getElementById('form-id').value=p.id||'';
-    document.getElementById('form-name').value=p.name||'';
-    document.getElementById('form-category').value=p.category||'macbook';
-    document.getElementById('form-price').value=p.price||'';
-    document.getElementById('form-specs').value=p.specs||'';
-    document.getElementById('form-desc').value=p.description||'';
-    document.getElementById('form-available').checked=!!p.available;
-    if(p.price) document.getElementById('price-preview').textContent=formatRp(p.price);
-    (p.images||[]).forEach(function(url){ if(url) addImgRow(url); });
-  } else {
-    ['form-id','form-name','form-price','form-specs','form-desc'].forEach(function(id){ document.getElementById(id).value=''; });
-    document.getElementById('form-category').value='macbook';
-    document.getElementById('form-available').checked=true;
-  }
-  document.getElementById('panel-overlay').classList.add('open');
-  setTimeout(function(){ document.getElementById('form-name').focus(); },240);
-}
-function closePanel(){
-  document.getElementById('panel-overlay').classList.remove('open');
-  editIdx=-1;
-}
-
-/* IMAGE ROWS */
-function addImgRow(url,sizeLabel){
-  var list=document.getElementById('img-list');
-  var row=document.createElement('div');
-  row.className='img-row';
-
-  if(url&&url.startsWith('data:')){
-    var thumb=document.createElement('img');
-    thumb.src=url;
-    thumb.style.cssText='width:40px;height:40px;object-fit:cover;border-radius:5px;flex-shrink:0';
-    var badge=document.createElement('span');
-    badge.style.cssText='flex:1;font-size:12px;color:var(--green);font-weight:500';
-    badge.textContent='\ud83d\udcc1 '+(sizeLabel||'Foto dari device');
-    var hidden=document.createElement('input');
-    hidden.type='hidden'; hidden.value=url;
-    row.appendChild(thumb); row.appendChild(badge); row.appendChild(hidden);
-  } else {
-    var wrap=document.createElement('div');
-    wrap.style.cssText='width:40px;height:40px;border-radius:5px;overflow:hidden;flex-shrink:0;background:var(--bg4)';
-    var pimg=document.createElement('img');
-    pimg.style.cssText='width:100%;height:100%;object-fit:cover;display:none';
-    wrap.appendChild(pimg);
-    var inp=document.createElement('input');
-    inp.type='text'; inp.placeholder='https://...jpg';
-    inp.value=(typeof url==='string'&&url.startsWith('http'))?url:'';
-    inp.addEventListener('input',function(){ if(this.value.startsWith('http')){ pimg.src=this.value; pimg.style.display='block'; } else { pimg.style.display='none'; } });
-    if(inp.value.startsWith('http')){ pimg.src=inp.value; pimg.style.display='block'; }
-    row.appendChild(wrap); row.appendChild(inp);
+  /* ── UTILS ── */
+  async function sha256(str) {
+    var buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+    return Array.from(new Uint8Array(buf)).map(function (b) { return b.toString(16).padStart(2, '0'); }).join('');
   }
 
-  var del=document.createElement('button');
-  del.className='img-del'; del.type='button'; del.innerHTML='&times;';
-  del.addEventListener('click',function(){ row.remove(); });
-  row.appendChild(del);
-  list.appendChild(row);
-  if(!url){ var t=row.querySelector('input[type=text]'); if(t) t.focus(); }
-}
+  function formatRp(n) { return 'Rp\u00a0' + Number(n).toLocaleString('id-ID'); }
 
-document.getElementById('img-add-btn').addEventListener('click',function(){ addImgRow(''); });
-document.getElementById('img-upload-btn').addEventListener('click',function(){ document.getElementById('img-file-input').click(); });
+  function generateId(name) {
+    return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').substring(0, 40) + '-' + Date.now().toString(36);
+  }
 
-/* COMPRESS */
-function compressImage(file){
-  return new Promise(function(resolve,reject){
-    var reader=new FileReader();
-    reader.onerror=reject;
-    reader.onload=function(e){
-      var img=new Image();
-      img.onerror=reject;
-      img.onload=function(){
-        var MAX=1200,w=img.width,h=img.height;
-        if(w>MAX){ h=Math.round(h*MAX/w); w=MAX; }
-        if(h>MAX){ w=Math.round(w*MAX/h); h=MAX; }
-        var canvas=document.createElement('canvas');
-        canvas.width=w; canvas.height=h;
-        canvas.getContext('2d').drawImage(img,0,0,w,h);
-        var dataUrl,isPng=file.type==='image/png';
-        if(isPng){
-          dataUrl=canvas.toDataURL('image/png');
-          if(dataUrl.length>1200000){ var wp=canvas.toDataURL('image/webp',0.85); dataUrl=(wp&&wp.length>100)?wp:canvas.toDataURL('image/jpeg',0.85); }
-        } else {
-          var webp=canvas.toDataURL('image/webp',0.85);
-          dataUrl=(webp&&webp.length>100)?webp:canvas.toDataURL('image/jpeg',0.82);
-          if(dataUrl.length>950000) dataUrl=canvas.toDataURL('image/jpeg',0.65);
-          if(dataUrl.length>950000) dataUrl=canvas.toDataURL('image/jpeg',0.50);
-        }
-        var fmt=dataUrl.split(';')[0].split('/')[1].toUpperCase();
-        resolve({dataUrl:dataUrl,w:w,h:h,kb:Math.round(dataUrl.length*0.75/1024),fmt:fmt});
+  function escHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function capFirst(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
+
+  function getPwHash() { return localStorage.getItem(PW_KEY) || DEFAULT_PW_HASH; }
+  function savePwHash(h) { localStorage.setItem(PW_KEY, h); }
+
+  function getProducts() {
+    try { var r = localStorage.getItem(PRODUCTS_KEY); return r ? JSON.parse(r) : null; }
+    catch (e) { return null; }
+  }
+  function saveProducts(arr) { localStorage.setItem(PRODUCTS_KEY, JSON.stringify(arr)); }
+
+  function ensureProducts() {
+    var p = getProducts();
+    if (!p) { saveProducts(DEFAULT_PRODUCTS); return DEFAULT_PRODUCTS.slice(); }
+    return p;
+  }
+
+  /* ── TOAST ── */
+  function showToast(msg, type) {
+    type = type || 'success';
+    var icons = {
+      success: '<svg class="toast-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+      error:   '<svg class="toast-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>',
+      info:    '<svg class="toast-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>'
+    };
+    var container = document.getElementById('toast-container');
+    var el = document.createElement('div');
+    el.className = 'toast toast-' + type;
+    el.innerHTML = (icons[type] || '') + '<span>' + escHtml(msg) + '</span>';
+    container.appendChild(el);
+    setTimeout(function () {
+      el.classList.add('removing');
+      setTimeout(function () { el.parentNode && el.parentNode.removeChild(el); }, 280);
+    }, 3200);
+  }
+
+  /* ── PARTICLES ── */
+  function initParticles() {
+    var canvas = document.getElementById('login-particles');
+    if (!canvas) return;
+    var ctx = canvas.getContext('2d');
+    var W, H, particles;
+
+    function resize() {
+      W = canvas.width  = window.innerWidth;
+      H = canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    particles = Array.from({ length: 55 }, function () {
+      return {
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight,
+        r:  Math.random() * 1.8 + 0.4,
+        vx: (Math.random() - 0.5) * 0.3,
+        vy: (Math.random() - 0.5) * 0.3,
+        a:  Math.random() * 0.4 + 0.08
       };
-      img.src=e.target.result;
+    });
+
+    function frame() {
+      ctx.clearRect(0, 0, W, H);
+      particles.forEach(function (p) {
+        p.x += p.vx; p.y += p.vy;
+        if (p.x < 0) p.x = W; if (p.x > W) p.x = 0;
+        if (p.y < 0) p.y = H; if (p.y > H) p.y = 0;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255,255,255,' + p.a + ')';
+        ctx.fill();
+      });
+      requestAnimationFrame(frame);
+    }
+    frame();
+  }
+
+  /* ── LOGIN ── */
+  function initLogin() {
+    initParticles();
+
+    var form     = document.getElementById('login-form');
+    var input    = document.getElementById('pw-input');
+    var errorEl  = document.getElementById('login-error');
+    var pwToggle = document.getElementById('pw-toggle');
+
+    pwToggle.addEventListener('click', function () {
+      var isPass = input.type === 'password';
+      input.type = isPass ? 'text' : 'password';
+      document.getElementById('eye-icon').innerHTML = isPass
+        ? '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>'
+        : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+    });
+
+    form.addEventListener('submit', async function (e) {
+      e.preventDefault();
+      var pw = input.value;
+      if (!pw) return;
+      var hash = await sha256(pw);
+      if (hash === getPwHash()) {
+        document.getElementById('login-screen').classList.add('hidden');
+        document.getElementById('admin-shell').classList.remove('hidden');
+        input.value = '';
+        errorEl.style.display = 'none';
+        renderProducts();
+      } else {
+        errorEl.style.display = 'block';
+        input.select();
+      }
+    });
+
+    document.getElementById('hint-change-pw').addEventListener('click', function () {
+      document.getElementById('login-screen').classList.add('hidden');
+      document.getElementById('admin-shell').classList.remove('hidden');
+      renderProducts();
+      showView('settings');
+    });
+  }
+
+  /* ── NAVIGATION ── */
+  var VIEW_TITLES = { products: 'Produk', publish: 'Publikasi', settings: 'Pengaturan' };
+
+  function showView(name) {
+    document.querySelectorAll('.view').forEach(function (v) { v.classList.remove('active'); });
+    document.querySelectorAll('.nav-item').forEach(function (n) { n.classList.remove('active'); });
+    var view = document.getElementById('view-' + name);
+    if (view) view.classList.add('active');
+    var nav = document.querySelector('[data-view="' + name + '"]');
+    if (nav) nav.classList.add('active');
+    document.getElementById('topbar-title').textContent = VIEW_TITLES[name] || name;
+    if (name === 'publish') renderJsonPreview();
+  }
+
+  document.querySelectorAll('.nav-item[data-view]').forEach(function (btn) {
+    btn.addEventListener('click', function () { showView(btn.dataset.view); });
+  });
+
+  document.getElementById('logout-btn').addEventListener('click', function () {
+    document.getElementById('admin-shell').classList.add('hidden');
+    document.getElementById('login-screen').classList.remove('hidden');
+    closeSidebar();
+  });
+
+  /* ── MOBILE SIDEBAR DRAWER ── */
+  var _sidebar  = document.querySelector('.sidebar');
+  var _backdrop = document.getElementById('sidebar-backdrop');
+  var _menuBtn  = document.getElementById('sidebar-toggle');
+
+  function openSidebar() {
+    _sidebar.classList.add('open');
+    _backdrop.classList.add('open');
+    _menuBtn && _menuBtn.setAttribute('aria-expanded', 'true');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeSidebar() {
+    _sidebar.classList.remove('open');
+    _backdrop.classList.remove('open');
+    _menuBtn && _menuBtn.setAttribute('aria-expanded', 'false');
+    document.body.style.overflow = '';
+  }
+
+  _menuBtn && _menuBtn.addEventListener('click', function () {
+    _sidebar.classList.contains('open') ? closeSidebar() : openSidebar();
+  });
+  _backdrop && _backdrop.addEventListener('click', closeSidebar);
+
+  // Auto-close drawer when a nav item is tapped on mobile
+  document.querySelectorAll('.nav-item[data-view]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      if (window.innerWidth <= 1023) closeSidebar();
+    });
+  });
+
+  /* ── STATS ── */
+  function updateStats(products) {
+    var total = products.length;
+    var avail = products.filter(function (p) { return p.available; }).length;
+    document.getElementById('stat-total').textContent = total;
+    document.getElementById('stat-avail').textContent = avail;
+    document.getElementById('stat-sold').textContent  = total - avail;
+    document.getElementById('stat-cats').textContent  = new Set(products.map(function (p) { return p.category; })).size;
+    document.getElementById('product-count').textContent = '(' + total + ')';
+  }
+
+  /* ── TABLE ── */
+  function renderProducts() {
+    var products = ensureProducts();
+    updateStats(products);
+    renderTable(products);
+  }
+
+  function renderTable(products) {
+    var search   = (document.getElementById('search-input').value || '').toLowerCase();
+    var category = document.getElementById('category-filter').value;
+
+    var filtered = products.filter(function (p) {
+      var ms = !search || p.name.toLowerCase().includes(search) || (p.specs || '').toLowerCase().includes(search);
+      var mc = !category || p.category === category;
+      return ms && mc;
+    });
+
+    var tbody = document.getElementById('product-tbody');
+    if (!filtered.length) {
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="6">Tidak ada produk ditemukan.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = filtered.map(function (p) {
+      var imgHtml = (p.images && p.images.length)
+        ? '<img class="td-img" src="' + escHtml(p.images[0]) + '" alt="" loading="lazy">'
+        : '<div class="td-img-placeholder"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>';
+
+      return '<tr>' +
+        '<td>' + imgHtml + '</td>' +
+        '<td><div class="td-name">' + escHtml(p.name) + '</div><div class="td-spec">' + escHtml(p.specs || '') + '</div></td>' +
+        '<td class="hide-sm"><span class="badge badge-' + escHtml(p.category) + '">' + escHtml(capFirst(p.category)) + '</span></td>' +
+        '<td class="td-price hide-sm">' + formatRp(p.price) + '</td>' +
+        '<td>' + (p.available ? '<span class="badge badge-available">Tersedia</span>' : '<span class="badge badge-sold">Terjual</span>') + '</td>' +
+        '<td><div class="td-actions">' +
+          '<button class="btn btn-secondary btn-sm btn-edit" data-id="' + escHtml(p.id) + '">Edit</button>' +
+          '<button class="btn btn-danger btn-sm btn-delete" data-id="' + escHtml(p.id) + '">Hapus</button>' +
+        '</div></td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  document.getElementById('search-input').addEventListener('input', function () { renderTable(ensureProducts()); });
+  document.getElementById('category-filter').addEventListener('change', function () { renderTable(ensureProducts()); });
+
+  document.getElementById('product-tbody').addEventListener('click', function (e) {
+    var editBtn   = e.target.closest('.btn-edit');
+    var deleteBtn = e.target.closest('.btn-delete');
+    if (editBtn)   openEditModal(editBtn.dataset.id);
+    if (deleteBtn) deleteProduct(deleteBtn.dataset.id);
+  });
+
+  /* ── MODAL ── */
+  var currentImages = [];
+
+  function openModal(title) {
+    document.getElementById('modal-title').textContent = title;
+    document.getElementById('product-modal').classList.add('open');
+    setTimeout(function () { document.getElementById('f-name').focus(); }, 60);
+  }
+
+  function closeModal() {
+    document.getElementById('product-modal').classList.remove('open');
+    document.getElementById('product-form').reset();
+    document.getElementById('price-preview').textContent = '';
+    currentImages = [];
+    renderImagePreviews();
+  }
+
+  document.getElementById('modal-close-btn').addEventListener('click', closeModal);
+  document.getElementById('modal-cancel-btn').addEventListener('click', closeModal);
+  document.getElementById('product-modal').addEventListener('click', function (e) { if (e.target === this) closeModal(); });
+
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeModal(); });
+
+  document.getElementById('btn-add-product').addEventListener('click', function () {
+    document.getElementById('f-id').value = '';
+    openModal('Tambah Produk');
+  });
+
+  function openEditModal(id) {
+    var p = ensureProducts().find(function (x) { return x.id === id; });
+    if (!p) return;
+    document.getElementById('f-id').value       = p.id;
+    document.getElementById('f-name').value     = p.name || '';
+    document.getElementById('f-category').value = p.category || '';
+    document.getElementById('f-price').value    = p.price || '';
+    document.getElementById('f-specs').value    = p.specs || '';
+    document.getElementById('f-desc').value     = p.description || '';
+    document.getElementById('f-wa').value       = p.whatsapp || '';
+    document.getElementById('f-available').checked = !!p.available;
+    document.getElementById('price-preview').textContent = p.price ? formatRp(p.price) : '';
+    currentImages = (p.images || []).slice();
+    renderImagePreviews();
+    openModal('Edit Produk');
+  }
+
+  document.getElementById('f-price').addEventListener('input', function () {
+    document.getElementById('price-preview').textContent = this.value ? formatRp(this.value) : '';
+  });
+
+  document.getElementById('modal-save-btn').addEventListener('click', function () {
+    if (!document.getElementById('product-form').reportValidity()) return;
+    var id       = document.getElementById('f-id').value;
+    var name     = document.getElementById('f-name').value.trim();
+    var category = document.getElementById('f-category').value;
+    var price    = parseInt(document.getElementById('f-price').value, 10) || 0;
+    var specs    = document.getElementById('f-specs').value.trim();
+    var desc     = document.getElementById('f-desc').value.trim();
+    var wa       = document.getElementById('f-wa').value.trim();
+    var avail    = document.getElementById('f-available').checked;
+
+    if (!wa) wa = 'Halo Sentraq, saya tertarik dengan ' + name + ' harga ' + formatRp(price);
+
+    var products = ensureProducts();
+    if (id) {
+      var idx = products.findIndex(function (p) { return p.id === id; });
+      if (idx > -1) {
+        products[idx] = { id: id, name: name, category: category, specs: specs, price: price, description: desc, images: currentImages.slice(), available: avail, whatsapp: wa };
+        showToast('Produk berhasil diperbarui');
+      }
+    } else {
+      products.push({ id: generateId(name), name: name, category: category, specs: specs, price: price, description: desc, images: currentImages.slice(), available: avail, whatsapp: wa });
+      showToast('Produk berhasil ditambahkan');
+    }
+    saveProducts(products);
+    closeModal();
+    renderProducts();
+  });
+
+  function deleteProduct(id) {
+    if (!confirm('Hapus produk ini?')) return;
+    saveProducts(ensureProducts().filter(function (p) { return p.id !== id; }));
+    renderProducts();
+    showToast('Produk dihapus', 'info');
+  }
+
+  /* ── IMAGE UPLOAD ── */
+  var dropZone  = document.getElementById('drop-zone');
+  var fileInput = document.getElementById('f-images');
+
+  dropZone.addEventListener('click', function (e) { if (e.target !== fileInput) fileInput.click(); });
+  fileInput.addEventListener('change', function () { handleFiles(this.files); this.value = ''; });
+  dropZone.addEventListener('dragover',  function (e) { e.preventDefault(); dropZone.classList.add('drag-over'); });
+  dropZone.addEventListener('dragleave', function () { dropZone.classList.remove('drag-over'); });
+  dropZone.addEventListener('drop', function (e) {
+    e.preventDefault(); dropZone.classList.remove('drag-over');
+    handleFiles(e.dataTransfer.files);
+  });
+
+  function handleFiles(files) {
+    var remaining = 5 - currentImages.length;
+    if (remaining <= 0) { showToast('Maksimal 5 foto', 'error'); return; }
+    Array.from(files).filter(function (f) { return f.type.startsWith('image/'); })
+      .slice(0, remaining)
+      .forEach(function (f) { compressImage(f, function (uri) { currentImages.push(uri); renderImagePreviews(); }); });
+  }
+
+  function compressImage(file, cb) {
+    var reader = new FileReader();
+    reader.onload = function (e) {
+      var img = new Image();
+      img.onload = function () {
+        var MAX = 1200, w = img.width, h = img.height;
+        if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+        if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; }
+        var canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        cb(canvas.toDataURL('image/jpeg', 0.82));
+      };
+      img.src = e.target.result;
     };
     reader.readAsDataURL(file);
-  });
-}
-
-document.getElementById('img-file-input').addEventListener('change',async function(){
-  var files=Array.from(this.files);
-  if(!files.length) return;
-  this.value='';
-  var bar=document.getElementById('img-compress-bar');
-  var msg=document.getElementById('img-compress-msg');
-  bar.classList.add('show');
-  for(var i=0;i<files.length;i++){
-    var file=files[i];
-    msg.textContent='Mengkompresi '+file.name+' ('+(i+1)+'/'+files.length+')...';
-    try{
-      var result=await compressImage(file);
-      addImgRow(result.dataUrl,result.fmt+' \u00b7 '+result.w+'\u00d7'+result.h+' \u00b7 '+result.kb+'KB');
-    } catch(e){ toast('Gagal proses '+file.name); }
   }
-  bar.classList.remove('show');
-  if(files.length>1) toast('\u2713 '+files.length+' foto berhasil dikompresi');
-});
 
-/* PRICE FORMAT */
-document.getElementById('form-price').addEventListener('input',function(){
-  var v=parseInt(this.value)||0;
-  document.getElementById('price-preview').textContent=v>0?formatRp(v):'';
-});
+  function renderImagePreviews() {
+    document.getElementById('img-previews').innerHTML = currentImages.map(function (src, i) {
+      return '<div class="img-preview-item">' +
+        '<img src="' + escHtml(src) + '" alt="">' +
+        '<button type="button" class="img-preview-remove" data-idx="' + i + '" aria-label="Hapus foto">&times;</button>' +
+      '</div>';
+    }).join('');
+  }
 
-/* FORM SAVE */
-document.getElementById('form-save').addEventListener('click',function(){
-  var name=document.getElementById('form-name').value.trim();
-  var cat=document.getElementById('form-category').value;
-  var price=Number(document.getElementById('form-price').value);
-  var specs=document.getElementById('form-specs').value.trim();
-  var desc=document.getElementById('form-desc').value.trim();
-  var avail=document.getElementById('form-available').checked;
-
-  var ok=true;
-  function mark(id,bad){ var el=document.getElementById(id); if(bad){ el.classList.add('err'); ok=false; } else el.classList.remove('err'); }
-  mark('form-name',!name);
-  mark('form-specs',!specs);
-  mark('form-price',!price||price<=0);
-  if(!ok){ toast('\u26a0 Lengkapi field yang ditandai merah'); return; }
-
-  var imgs=[];
-  document.querySelectorAll('#img-list .img-row').forEach(function(row){
-    var hidden=row.querySelector('input[type=hidden]');
-    var text=row.querySelector('input[type=text]');
-    if(hidden&&hidden.value) imgs.push(hidden.value);
-    else if(text&&text.value.trim()) imgs.push(text.value.trim());
+  document.getElementById('img-previews').addEventListener('click', function (e) {
+    var btn = e.target.closest('.img-preview-remove');
+    if (!btn) return;
+    currentImages.splice(parseInt(btn.dataset.idx, 10), 1);
+    renderImagePreviews();
   });
 
-  var id=editIdx>=0?(products[editIdx].id||generateId(name)):generateId(name);
-  var obj={id:id,name:name,category:cat,specs:specs,price:price,description:desc,images:imgs,available:avail,
-    whatsapp:'Halo Sentraq, saya tertarik dengan '+name+' \u2014 '+formatRp(price)+'. Masih tersedia?'};
+  /* ── EXPORT / IMPORT ── */
+  function exportProducts() {
+    var json = JSON.stringify({ products: ensureProducts() }, null, 2);
+    var blob = new Blob([json], { type: 'application/json' });
+    var url  = URL.createObjectURL(blob);
+    var a    = document.createElement('a');
+    a.href = url; a.download = 'products.json';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    showToast('products.json berhasil didownload');
+  }
 
-  if(editIdx>=0) products[editIdx]=obj; else products.push(obj);
-  saveProducts(products); renderTable(); updateStats(); closePanel();
-
-  var ghOk=!!(localStorage.getItem(GH_TOKEN_KEY)&&localStorage.getItem(GH_USER_KEY)&&localStorage.getItem(GH_REPO_KEY));
-  if(editIdx<0&&ghOk) toast('\u2713 Produk ditambahkan! Klik "Publish ke GitHub" untuk live.');
-  else if(editIdx<0) toast('\u2713 Produk ditambahkan! Setup GitHub di Pengaturan untuk publish.');
-  else toast('\u2713 Produk diperbarui. Jangan lupa Publish ke GitHub.');
-});
-
-/* GH SETTINGS */
-function loadGhSettings(){
-  document.getElementById('gh-token').value=localStorage.getItem(GH_TOKEN_KEY)||'';
-  document.getElementById('gh-user').value=localStorage.getItem(GH_USER_KEY)||'';
-  document.getElementById('gh-repo').value=localStorage.getItem(GH_REPO_KEY)||'';
-  document.getElementById('gh-branch').value=localStorage.getItem(GH_BRANCH_KEY)||'main';
-}
-function saveGhSettings(){
-  var token=document.getElementById('gh-token').value.trim();
-  var user=document.getElementById('gh-user').value.trim();
-  var repo=document.getElementById('gh-repo').value.trim();
-  var branch=document.getElementById('gh-branch').value.trim()||'main';
-  if(!token||!user||!repo){ toast('\u26a0 Lengkapi Token, Username, dan Nama Repo'); return false; }
-  localStorage.setItem(GH_TOKEN_KEY,token);
-  localStorage.setItem(GH_USER_KEY,user);
-  localStorage.setItem(GH_REPO_KEY,repo);
-  localStorage.setItem(GH_BRANCH_KEY,branch);
-  updateGhStatusBar();
-  return true;
-}
-document.getElementById('save-gh-btn').addEventListener('click',async function(){ if(saveGhSettings()){ toast('Disimpan! Menguji koneksi...'); await testConnection(); } });
-document.getElementById('test-gh-btn').addEventListener('click',async function(){ saveGhSettings(); await testConnection(); });
-
-async function testConnection(){
-  var s=document.getElementById('gh-status');
-  var token=localStorage.getItem(GH_TOKEN_KEY);
-  var user=localStorage.getItem(GH_USER_KEY);
-  var repo=localStorage.getItem(GH_REPO_KEY);
-  var branch=localStorage.getItem(GH_BRANCH_KEY)||'main';
-  if(!token||!user||!repo){ s.textContent='\u26a0 Simpan pengaturan dulu.'; s.className='publish-status loading show'; return; }
-  s.textContent='\u23f3 Menghubungkan ke GitHub...'; s.className='publish-status loading show';
-  try{
-    var r=await fetch('https://api.github.com/repos/'+user+'/'+repo,{headers:{Authorization:'Bearer '+token,Accept:'application/vnd.github.v3+json'}});
-    if(!r.ok){
-      var m=r.status===404?'Repo tidak ditemukan \u2014 cek username & nama repo':r.status===401?'Token tidak valid atau expired':r.status===403?'Token tidak punya izin \u2014 centang "repo" saat buat token':'Error '+r.status;
-      s.textContent='\u2717 '+m; s.className='publish-status err show'; return;
-    }
-    var d=await r.json();
-    var cr=await fetch('https://api.github.com/repos/'+user+'/'+repo+'/contents/products.json?ref='+branch,{headers:{Authorization:'Bearer '+token,Accept:'application/vnd.github.v3+json'}});
-    if(cr.status===401||cr.status===403){ s.textContent='\u2717 Token tidak punya izin baca/tulis file. Centang "repo" saat buat token.'; s.className='publish-status err show'; return; }
-    var hint=cr.ok?' \u00b7 products.json \u2713':cr.status===404?' \u00b7 products.json belum ada (akan dibuat saat Publish)':'';
-    s.textContent='\u2713 Terhubung: '+d.full_name+' ('+d.visibility+')'+hint;
-    s.className='publish-status ok show';
-    updateGhStatusBar();
-  } catch(e){ s.textContent='\u2717 '+e.message; s.className='publish-status err show'; }
-}
-
-/* PUBLISH */
-function safeBase64(str){
-  var bytes=new TextEncoder().encode(str);
-  var bin='',chunk=8192;
-  for(var i=0;i<bytes.length;i+=chunk) bin+=String.fromCharCode.apply(null,bytes.subarray(i,i+chunk));
-  return btoa(bin);
-}
-function plog(msg,color){ var el=document.getElementById('publish-log'); var ln=document.createElement('div'); ln.style.color=color||'#e5e5ea'; ln.textContent=msg; el.appendChild(ln); el.scrollTop=el.scrollHeight; }
-function setPub(type,msg){ var el=document.getElementById('pub-summary'); el.className='pub-summary '+type; el.textContent=msg; }
-function showPubModal(){
-  document.getElementById('publish-log').innerHTML='';
-  setPub('loading','\u23f3 Memproses...');
-  document.getElementById('publish-modal-footer').style.display='none';
-  document.getElementById('pub-log-toggle').style.display='none';
-  document.getElementById('publish-log').classList.remove('show');
-  document.getElementById('publish-modal').classList.add('show');
-}
-document.getElementById('publish-modal-close').addEventListener('click',function(){ document.getElementById('publish-modal').classList.remove('show'); });
-document.getElementById('publish-modal-ok').addEventListener('click',function(){ document.getElementById('publish-modal').classList.remove('show'); });
-document.getElementById('pub-log-toggle').addEventListener('click',function(){ document.getElementById('publish-log').classList.toggle('show'); });
-
-async function ghPut(token,url,body,label){
-  plog('  PUT '+url.replace('https://api.github.com',''));
-  var r=await fetch(url,{method:'PUT',headers:{Authorization:'Bearer '+token,Accept:'application/vnd.github.v3+json','Content-Type':'application/json'},body:JSON.stringify(body)});
-  var data; try{ data=await r.json(); }catch(e){ data={}; }
-  if(r.ok){ plog('  \u2713 '+label+' ('+r.status+')','#30d158'); }
-  else{ plog('  \u2717 HTTP '+r.status+' \u2014 '+(data.message||'unknown'),'#ff453a'); if(data.errors) plog('    '+JSON.stringify(data.errors),'#ff9f0a'); throw new Error('HTTP '+r.status+': '+(data.message||'unknown')); }
-  return data;
-}
-async function ghGetSha(token,url,branch){
-  var r=await fetch(url+'?ref='+branch,{headers:{Authorization:'Bearer '+token,Accept:'application/vnd.github.v3+json'}});
-  if(r.ok){ var d=await r.json(); plog('  SHA: '+d.sha.substring(0,10),'#636366'); return d.sha; }
-  if(r.status===404){ plog('  (file baru \u2014 akan dibuat)','#636366'); return null; }
-  var d; try{d=await r.json();}catch(e){d={};}
-  throw new Error('GET SHA: HTTP '+r.status+': '+(d.message||''));
-}
-async function uploadImg(token,user,repo,branch,fname,dataUrl){
-  var b64=dataUrl.split(',')[1];
-  if(!b64) throw new Error('Data URL tidak valid: '+fname);
-  var apiUrl='https://api.github.com/repos/'+user+'/'+repo+'/contents/assets/images/'+fname;
-  plog('\n  \ud83d\uddbc\ufe0f '+fname+' ('+Math.round(b64.length*0.75/1024)+'KB)');
-  var sha=await ghGetSha(token,apiUrl,branch);
-  var body={message:'img: '+fname,content:b64,branch:branch};
-  if(sha) body.sha=sha;
-  await ghPut(token,apiUrl,body,fname);
-  return 'https://raw.githubusercontent.com/'+user+'/'+repo+'/'+branch+'/assets/images/'+fname;
-}
-
-function initPublish(){
-  document.getElementById('publish-btn').addEventListener('click',function(){
-    var token=(localStorage.getItem(GH_TOKEN_KEY)||'').trim();
-    var user=(localStorage.getItem(GH_USER_KEY)||'').trim();
-    var repo=(localStorage.getItem(GH_REPO_KEY)||'').trim();
-    if(!token||!user||!repo){ toast('\u26a0 GitHub belum dikonfigurasi \u2014 buka Pengaturan dulu'); document.querySelector('[data-view="settings"]').click(); return; }
-    publishToGitHub();
-  });
-}
-
-async function publishToGitHub(){
-  var token=(localStorage.getItem(GH_TOKEN_KEY)||'').trim();
-  var user=(localStorage.getItem(GH_USER_KEY)||'').trim();
-  var repo=(localStorage.getItem(GH_REPO_KEY)||'').trim();
-  var branch=(localStorage.getItem(GH_BRANCH_KEY)||'main').trim();
-  var btn=document.getElementById('publish-btn');
-  btn.disabled=true; btn.textContent='Mempublish...';
-  showPubModal();
-  plog('Repo   : '+user+'/'+repo);
-  plog('Branch : '+branch);
-  plog('Produk : '+products.length+' item');
-  plog('\u2500'.repeat(38),'#3a3a3c');
-  try{
-    /* Pre-flight: verify branch exists and token has write access */
-    plog('\n[0/2] Verifikasi akses...','#ffd60a');
-    var branchCheck=await fetch('https://api.github.com/repos/'+user+'/'+repo+'/branches/'+branch,{headers:{Authorization:'Bearer '+token,Accept:'application/vnd.github.v3+json'}});
-    if(!branchCheck.ok){
-      var bc; try{bc=await branchCheck.json();}catch(e){bc={};}
-      if(branchCheck.status===401) throw new Error('401: Token tidak valid atau expired. Buat token baru di GitHub Settings.');
-      if(branchCheck.status===403) throw new Error('403: Token tidak punya izin. Centang "repo" saat buat token.');
-      if(branchCheck.status===404) throw new Error('404-branch: Branch \u201c'+branch+'\u201d tidak ditemukan di '+user+'/'+repo+'. Coba ganti branch ke "main" atau "master" di Pengaturan.');
-      throw new Error(branchCheck.status+': '+(bc.message||'Unknown error'));
-    }
-    plog('  \u2713 Repo & branch "'+branch+'" OK','#30d158');
-
-    var up=JSON.parse(JSON.stringify(products));
-    var hasData=up.some(function(p){ return (p.images||[]).some(function(i){ return i&&i.startsWith('data:'); }); });
-
-    if(hasData){
-      plog('\n[1/2] Upload foto dari device...','#ffd60a');
-      setPub('loading','\u23f3 Mengupload foto...');
-      var cnt=0, skipped=0;
-      for(var i=0;i<up.length;i++){
-        if(!up[i].images) continue;
-        for(var j=0;j<up[i].images.length;j++){
-          var img=up[i].images[j];
-          if(img&&img.startsWith('data:')){
-            var ext=img.includes('image/png')?'png':img.includes('image/webp')?'webp':'jpg';
-            var fname=(up[i].id||'product-'+i)+'-'+(j+1)+'.'+ext;
-            try{
-              var url=await uploadImg(token,user,repo,branch,fname,img);
-              up[i].images[j]=url; cnt++;
-            } catch(imgErr){
-              plog('  \u26a0 '+fname+' gagal: '+imgErr.message,'#ff9f0a');
-              up[i].images[j]=''; skipped++;
-            }
-          }
+  document.getElementById('import-file-input').addEventListener('change', function () {
+    var file = this.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function (e) {
+      try {
+        var data = JSON.parse(e.target.result);
+        if (Array.isArray(data.products)) {
+          saveProducts(data.products);
+          renderProducts();
+          showToast('Import berhasil \u2014 ' + data.products.length + ' produk dimuat');
+        } else {
+          showToast('Format file tidak valid', 'error');
         }
-        up[i].images=(up[i].images||[]).filter(Boolean);
-      }
-      if(cnt>0){ products=up; saveProducts(products); renderTable(); }
-      plog('  \u2713 '+cnt+' foto diupload'+(skipped?' (\u26a0 '+skipped+' gagal \u2014 produk tetap dipublish tanpa foto tersebut)':''),'#30d158');
-    } else {
-      plog('\n[1/2] Tidak ada foto baru \u2192 skip','#636366');
-    }
+      } catch (err) { showToast('Gagal membaca file JSON', 'error'); }
+    };
+    reader.readAsText(file);
+    this.value = '';
+  });
 
-    plog('\n[2/2] Publish products.json...','#ffd60a');
-    setPub('loading','\u23f3 Menyimpan data produk...');
-    var content=JSON.stringify({products:up},null,2);
-    plog('  Size: '+Math.round(content.length/1024)+'KB \u00b7 '+up.length+' produk');
-    var b64=safeBase64(content);
-    var apiUrl='https://api.github.com/repos/'+user+'/'+repo+'/contents/products.json';
-    var sha=await ghGetSha(token,apiUrl,branch);
-    var body={message:'catalog: update via Sentraq Admin',content:b64,branch:branch};
-    if(sha) body.sha=sha;
-    await ghPut(token,apiUrl,body,'products.json');
-    plog('\n\u2713 SELESAI! Website update dalam ~60 detik.','#30d158');
-    plog('URL: https://'+user+'.github.io','#30d158');
-    setPub('ok','\u2705 Berhasil! Website akan live dalam ~60 detik.');
-    document.getElementById('pub-log-toggle').style.display='flex';
-    document.getElementById('publish-modal-footer').style.display='flex';
-    toast('\u2713 Published! Website update dalam ~60 detik.');
-  } catch(e){
-    plog('\n\u2717 GAGAL: '+e.message,'#ff453a');
-    var m=e.message||'';
-    var hint=m.startsWith('404-branch:')?m.replace('404-branch: ',''):
-             m.includes('401')?'Token tidak valid atau expired. Buat token baru di GitHub Settings.':
-             m.includes('403')?'Token tidak punya izin. Centang "repo" saat buat token.':
-             m.includes('404')?'File tidak ditemukan. Pastikan username, nama repo, dan branch sudah benar di Pengaturan.':
-             m.includes('422')?'Konflik SHA. Klik Publish lagi untuk retry.':
-             'Cek koneksi internet, lalu coba Test Koneksi di Pengaturan.';
-    plog('\n\ud83d\udca1 '+hint,'#ffd60a');
-    setPub('err','\u274c Gagal: '+hint);
-    /* Auto-expand log so user can see exactly what failed */
-    document.getElementById('publish-log').classList.add('show');
-    document.getElementById('pub-log-toggle').style.display='flex';
-    document.getElementById('publish-modal-footer').style.display='flex';
-  } finally {
-    btn.disabled=false; btn.textContent='Publish ke GitHub';
+  function triggerImport() { document.getElementById('import-file-input').click(); }
+
+  document.getElementById('btn-export-top').addEventListener('click', exportProducts);
+  document.getElementById('btn-import-top').addEventListener('click', triggerImport);
+  document.getElementById('btn-export-publish').addEventListener('click', exportProducts);
+  document.getElementById('btn-import-publish').addEventListener('click', triggerImport);
+
+  /* ── JSON PREVIEW ── */
+  function renderJsonPreview() {
+    document.getElementById('json-preview').textContent = JSON.stringify({ products: ensureProducts() }, null, 2);
   }
-}
 
-/* CHANGE PW */
-document.getElementById('change-pw-btn').addEventListener('click',async function(){
-  var p1=document.getElementById('new-pw1').value;
-  var p2=document.getElementById('new-pw2').value;
-  if(!p1){ toast('\u26a0 Masukkan password baru'); return; }
-  if(p1!==p2){ toast('\u26a0 Password tidak cocok'); return; }
-  if(p1.length<6){ toast('\u26a0 Password minimal 6 karakter'); return; }
-  savePwHash(await sha256(p1));
-  document.getElementById('new-pw1').value='';
-  document.getElementById('new-pw2').value='';
-  toast('\u2713 Password berhasil diganti');
-});
+  /* ── SETTINGS ── */
+  document.getElementById('btn-change-pw').addEventListener('click', async function () {
+    var cur     = document.getElementById('current-pw').value;
+    var next    = document.getElementById('new-pw').value;
+    var confirm = document.getElementById('confirm-pw').value;
+    if (!cur || !next || !confirm) { showToast('Isi semua kolom password', 'error'); return; }
+    if (next.length < 6)           { showToast('Password baru minimal 6 karakter', 'error'); return; }
+    if (next !== confirm)           { showToast('Konfirmasi password tidak cocok', 'error'); return; }
+    if (await sha256(cur) !== getPwHash()) { showToast('Password lama tidak benar', 'error'); return; }
+    savePwHash(await sha256(next));
+    ['current-pw','new-pw','confirm-pw'].forEach(function (id) { document.getElementById(id).value = ''; });
+    showToast('Password berhasil diubah');
+  });
 
-/* RESET */
-document.getElementById('reset-btn').addEventListener('click',function(){
-  if(confirm('Reset konfigurasi GitHub? Token akan dihapus dari browser ini. Data produk tetap aman.')){
-    [GH_TOKEN_KEY,GH_USER_KEY,GH_REPO_KEY,GH_BRANCH_KEY].forEach(function(k){ localStorage.removeItem(k); });
-    loadGhSettings(); updateGhStatusBar();
-    document.getElementById('gh-status').className='publish-status';
-    toast('\u2713 Konfigurasi GitHub direset');
-  }
-});
+  document.getElementById('btn-load-defaults').addEventListener('click', function () {
+    if (!confirm('Reset produk ke data default? Semua perubahan akan hilang.')) return;
+    saveProducts(DEFAULT_PRODUCTS);
+    renderProducts();
+    showToast('Produk default dimuat');
+  });
+
+  document.getElementById('btn-clear-all').addEventListener('click', function () {
+    if (!confirm('Hapus SEMUA produk? Tindakan ini tidak dapat dibatalkan.')) return;
+    saveProducts([]);
+    renderProducts();
+    showToast('Semua produk dihapus', 'info');
+  });
+
+  /* ── BOOT ── */
+  initLogin();
 
 })();
 </script>

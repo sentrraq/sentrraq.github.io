@@ -31,8 +31,59 @@ document.addEventListener('DOMContentLoaded', function () {
   setFooterYear();
   initNavbar();
   initFilterBar();
+  initHeroCycle();
+  initEarlyAnimations();
   loadProducts();
 });
+
+/* ===== HERO CYCLE WORD ===== */
+function initHeroCycle() {
+  var el = document.getElementById('hero-cycle-word');
+  if (!el) return;
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  var words = ['MacBook', 'iPhone', 'iPad', 'Laptop'];
+  var idx = 0;
+
+  setTimeout(function () {
+    setInterval(function () {
+      el.classList.add('cycling-out');
+      setTimeout(function () {
+        idx = (idx + 1) % words.length;
+        el.textContent = words[idx];
+        el.classList.remove('cycling-out');
+        el.classList.add('cycling-in');
+        void el.offsetWidth; // force reflow so transition fires
+        el.classList.remove('cycling-in');
+      }, 230);
+    }, 2800);
+  }, 3200);
+}
+
+/* ===== EARLY ANIMATIONS (hero + static sections) ===== */
+function initEarlyAnimations() {
+  var noMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var sel = '.reveal-up, .feature-card, .contact-card';
+
+  if (!('IntersectionObserver' in window) || noMotion) {
+    document.querySelectorAll(sel).forEach(function (el) { el.classList.add('visible'); });
+    return;
+  }
+
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (entry) {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        io.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+
+  document.querySelectorAll(sel).forEach(function (el, i) {
+    el.style.transitionDelay = Math.min(i * 0.07, 0.42) + 's';
+    io.observe(el);
+  });
+}
 
 /* ===== FOOTER YEAR ===== */
 function setFooterYear() {
@@ -448,12 +499,10 @@ function initSliders() {
   });
 }
 
-/* ===== ANIMATIONS ===== */
+/* ===== ANIMATIONS (product cards only — static sections handled by initEarlyAnimations) ===== */
 function initAnimations() {
   if (!('IntersectionObserver' in window)) {
-    document.querySelectorAll('.product-card, .contact-card, .feature-card, .reveal-up').forEach(function (el) {
-      el.classList.add('visible');
-    });
+    document.querySelectorAll('.product-card').forEach(function (el) { el.classList.add('visible'); });
     return;
   }
 
@@ -466,13 +515,8 @@ function initAnimations() {
     });
   }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
 
-  document.querySelectorAll('.product-card, .contact-card, .feature-card').forEach(function (el, i) {
+  document.querySelectorAll('.product-card').forEach(function (el, i) {
     el.style.transitionDelay = Math.min(i * 0.06, 0.3) + 's';
-    observer.observe(el);
-  });
-
-  document.querySelectorAll('.reveal-up').forEach(function (el, i) {
-    el.style.transitionDelay = (i * 0.08) + 's';
     observer.observe(el);
   });
 }

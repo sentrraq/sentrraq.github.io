@@ -9,11 +9,12 @@
 ```
 sentraq.github.io/
 ├── index.html            ← Website utama (publik)
-├── admin.html            ← Dashboard admin (self-contained)
-├── products.json         ← Data produk (sumber kebenaran)
+├── admin.html            ← Dashboard admin
+├── products.json         ← Data produk (sumber kebenaran untuk website)
 ├── assets/
 │   ├── css/
-│   │   └── style.css     ← Semua styling (Apple-style design system)
+│   │   ├── style.css     ← Styling website utama (Apple-style design system)
+│   │   └── admin.css     ← Styling khusus admin dashboard
 │   ├── js/
 │   │   └── script.js     ← Semua logika interaktif website
 │   └── images/           ← Foto produk (opsional, bisa pakai URL eksternal)
@@ -37,28 +38,31 @@ script.js dijalankan
         ├─► fetch("products.json")
         │         │
         │         ├─ Berhasil → render produk dari JSON
-        │         └─ Gagal   → render produk fallback (hardcoded)
+        │         └─ Gagal   → tampilkan tombol retry
         │
-        ├─► initNavbar()       → hamburger menu, scroll effect
-        ├─► initFilterNav()    → klik MacBook/iPhone/iPad/Laptop di navbar
-        ├─► initAnimations()   → reveal-up scroll animations
-        ├─► initSliders()      → slider foto produk (jika ada gambar)
-        └─► initLazyImages()   → lazy load gambar + fallback jika error
+        ├─► initNavbar()           → hamburger menu, scroll effect
+        ├─► initFilterBar()        → filter pills (Semua / MacBook / iPhone / iPad / Laptop)
+        ├─► initHeroCycle()        → cycling word di hero heading (MacBook → iPhone → ...)
+        ├─► initEarlyAnimations()  → reveal-up untuk hero, features, contact (dipanggil awal)
+        ├─► initAnimations()       → reveal-up untuk product cards (dipanggil setelah fetch)
+        ├─► initSliders()          → slider foto produk (jika ada gambar)
+        └─► initLazyImages()       → lazy load gambar + fallback jika error
 ```
 
 ### Alur Filter Produk
 
 ```
-User klik "MacBook" di navbar
+User klik filter pill / nav link kategori
         │
         ▼
 applyFilter("macbook")
         │
         ├─► Semua .product-card di-cek dataset.category
-        ├─► Card yang tidak cocok → tambah class .hidden
-        ├─► Card yang cocok      → tampil
-        ├─► Navbar link aktif    → class .nav-filter-active (warna biru)
-        └─► Jika tidak ada produk → tampilkan #products-empty
+        ├─► Card tidak cocok → fade out → display:none
+        ├─► Card cocok       → fade in dengan stagger delay
+        ├─► Filter pill aktif → class .filter-pill--active
+        ├─► Navbar link aktif → class .nav-filter-active
+        └─► Jika kosong      → tampilkan #products-empty
 ```
 
 ---
@@ -76,9 +80,9 @@ applyFilter("macbook")
       "category":    "macbook",               // macbook | iphone | ipad | laptop
       "specs":       "i5 · 16GB · 512GB SSD", // Spesifikasi singkat
       "price":       7500000,                 // Harga (angka, Rupiah)
-      "description": "Kondisi mulus...",      // Deskripsi panjang
-      "images":      ["https://..."],         // Array URL foto (boleh kosong)
-      "available":   true,                    // true = tampil | false = disembunyikan
+      "description": "Kondisi mulus...",      // Deskripsi panjang (opsional)
+      "images":      ["https://..."],         // Array URL foto (boleh kosong [])
+      "available":   true,                    // true = Tersedia | false = Terjual
       "whatsapp":    "Halo Sentraq, ..."      // Pesan WhatsApp pre-filled
     }
   ]
@@ -87,12 +91,12 @@ applyFilter("macbook")
 
 ### Kategori yang Didukung
 
-| `category` | Tampil di filter | Icon SVG |
-|-----------|-----------------|----------|
-| `macbook` | MacBook         | Laptop SVG |
-| `iphone`  | iPhone          | Phone SVG |
-| `ipad`    | iPad            | Tablet SVG |
-| `laptop`  | Laptop          | Laptop SVG |
+| `category` | Label di filter | Icon |
+|-----------|----------------|------|
+| `macbook` | MacBook        | Laptop SVG |
+| `iphone`  | iPhone         | Phone SVG |
+| `ipad`    | iPad           | Tablet SVG |
+| `laptop`  | Laptop         | Laptop SVG |
 
 ---
 
@@ -105,7 +109,21 @@ Buka: https://sentraq.github.io/admin.html
 Password default: sentraq123
 ```
 
-> File admin.html **self-contained** — tidak butuh server, semua CSS & JS inline.
+> **Penting:** Ganti password segera setelah pertama login via tab Pengaturan.
+
+### Arsitektur Admin
+
+Admin berjalan **100% di browser** — tidak ada server atau backend:
+
+| Komponen | Detail |
+|----------|--------|
+| CSS | `assets/css/admin.css` (file terpisah dari website utama) |
+| JS | Inline di dalam `admin.html` |
+| Penyimpanan | `localStorage` browser |
+| Autentikasi | SHA-256 hash password via Web Crypto API |
+| Publish | Manual download → upload ke GitHub |
+
+---
 
 ### Alur Login
 
@@ -119,139 +137,110 @@ Cek localStorage["sentraq_admin_pw"]
         └─ Sudah ada → gunakan hash yang tersimpan
         │
         ▼
-User masukkan password → SHA-256 hash via Web Crypto API
+User masukkan password → di-hash SHA-256 via Web Crypto API
         │
-        ├─ Hash cocok → masuk dashboard
+        ├─ Hash cocok     → masuk dashboard
         └─ Hash tidak cocok → tampilkan error
 ```
 
+---
+
 ### Fitur Dashboard
 
-| Fitur | Keterangan |
-|-------|-----------|
-| **Lihat Produk** | Tabel semua produk dari localStorage |
-| **Tambah Produk** | Form baru → simpan ke localStorage |
-| **Edit Produk** | Klik produk → panel overlay edit |
-| **Hapus Produk** | Hapus dari localStorage |
-| **Publish ke GitHub** | Push `products.json` via GitHub API |
-| **Ganti Password** | Hash password baru disimpan ke localStorage |
+| Tab | Fitur |
+|-----|-------|
+| **Produk** | Lihat, tambah, edit, hapus produk · Statistik total/tersedia/terjual · Search & filter kategori |
+| **Publikasi** | Download `products.json` · Import `products.json` · Preview isi JSON |
+| **Pengaturan** | Ganti password · Muat produk default · Hapus semua produk |
+
+---
 
 ### Alur CRUD Produk
 
 ```
-Admin tambah/edit/hapus produk
+Admin tambah / edit / hapus produk
         │
         ▼
 Data disimpan ke localStorage["sentraq_products"]
         │
         ▼
-(Opsional) Klik "Publish ke GitHub"
+Perubahan hanya ada di browser — website publik belum berubah
         │
         ▼
-GET /repos/{user}/{repo}/contents/products.json
-→ Ambil SHA file yang ada
-        │
-        ▼
-PUT /repos/{user}/{repo}/contents/products.json
-→ Kirim konten baru (base64) + SHA lama
-        │
-        ▼
-GitHub Pages auto-deploy (~30-60 detik)
-        │
-        ▼
-index.html fetch("products.json") → tampilan diperbarui
-```
-
-### Alur Publish ke GitHub
-
-```
-Admin klik "Publish"
-        │
-        ▼
-Ambil dari localStorage:
-  - sentraq_gh_token  → GitHub Personal Access Token
-  - sentraq_gh_user   → GitHub username
-  - sentraq_gh_repo   → Nama repo (default: sentraq.github.io)
-  - sentraq_gh_branch → Branch (default: main)
-        │
-        ▼
-Step 1: GET file SHA
-  https://api.github.com/repos/{user}/{repo}/contents/products.json
-        │
-        ▼
-Step 2: PUT file baru
-  Body: { message, content: btoa(JSON), sha: existing_sha, branch }
-        │
-        ▼
-GitHub Pages deploy otomatis ✓
+Perlu publish → lihat alur Publikasi di bawah
 ```
 
 ---
 
-## 4. Penyimpanan Data
+### Alur Publikasi ke Website
 
-| Key localStorage | Isi | Siapa yang nulis |
-|-----------------|-----|-----------------|
+Tidak ada GitHub API — publikasi dilakukan **manual**:
+
+```
+1. Tab "Publikasi" → klik "Download products.json"
+        │
+        ▼
+2. File tersimpan ke folder Downloads kamu
+        │
+        ▼
+3. Buka GitHub repo → cari file products.json di root
+        │
+        ▼
+4. Klik ikon pensil (Edit) → "Upload file" → pilih/drag file baru
+   ATAU: langsung replace via GitHub Desktop / git push
+        │
+        ▼
+5. Klik "Commit changes"
+        │
+        ▼
+6. GitHub Pages auto-deploy (~30–60 detik)
+        │
+        ▼
+7. index.html fetch("products.json") → produk diperbarui ✓
+```
+
+> **Import:** Jika kamu pindah browser/perangkat, gunakan tombol "Import products.json"
+> untuk memuat ulang data dari file yang pernah di-download sebelumnya.
+
+---
+
+## 4. Penyimpanan Data (localStorage)
+
+| Key | Isi | Ditulis oleh |
+|-----|-----|-------------|
 | `sentraq_products` | Array produk (JSON string) | Admin dashboard |
 | `sentraq_admin_pw` | SHA-256 hash password | Admin dashboard |
-| `sentraq_gh_token` | GitHub PAT (token) | Settings admin |
-| `sentraq_gh_user` | GitHub username | Settings admin |
-| `sentraq_gh_repo` | Nama repo | Settings admin |
-| `sentraq_gh_branch` | Branch target | Settings admin |
 
-> **Catatan:** `products.json` di repo adalah sumber kebenaran untuk website publik.  
-> localStorage hanya digunakan oleh admin sebagai draft sebelum di-publish.
+> `products.json` di repo GitHub adalah **sumber kebenaran** untuk website publik.
+> localStorage hanya digunakan admin sebagai draft kerja sebelum di-publish.
 
 ---
 
-## 5. Setup Awal untuk Admin
-
-### Langkah-langkah:
-
-**1. Buat GitHub Personal Access Token**
-- Buka: https://github.com/settings/tokens/new
-- Centang scope: `repo` (full control)
-- Generate → copy token
-
-**2. Konfigurasi di Admin Dashboard**
-- Buka `admin.html` → login
-- Klik **Pengaturan**
-- Isi:
-  - GitHub Token: `ghp_xxxxxxxxxxxx`
-  - GitHub Username: `sentraq`
-  - Repo Name: `sentraq.github.io`
-  - Branch: `main`
-
-**3. Publish**
-- Tambah/edit produk
-- Klik **Publish ke GitHub**
-- Tunggu ~30-60 detik → website live
-
----
-
-## 6. Cara Menambah Produk Baru
+## 5. Cara Menambah Produk Baru (End-to-End)
 
 ```
-1. Buka admin.html → login (password: sentraq123)
+1. Buka admin.html → login
 2. Klik "Tambah Produk"
 3. Isi form:
    - Nama produk
    - Kategori (macbook / iphone / ipad / laptop)
-   - Spesifikasi
-   - Harga (angka, tanpa titik)
-   - Deskripsi
-   - URL foto (boleh beberapa, satu per baris)
-   - Pesan WhatsApp (auto-generated)
-4. Klik "Simpan"
-5. Klik "Publish ke GitHub"
-6. Tunggu ~30-60 detik → produk muncul di website
+   - Spesifikasi singkat
+   - Harga (angka tanpa titik, contoh: 7500000)
+   - Deskripsi (opsional)
+   - URL foto (opsional, satu per baris)
+   - Pesan WhatsApp (auto-generated, bisa diedit)
+   - Status: Tersedia / Terjual
+4. Klik "Simpan" → tersimpan di localStorage
+5. Tab "Publikasi" → Download products.json
+6. Upload ke GitHub repo → Commit changes
+7. Tunggu ~30–60 detik → produk muncul di website
 ```
 
 ---
 
-## 7. Arsitektur Keamanan
+## 6. Arsitektur Keamanan
 
-- Password **tidak disimpan plain-text** — hanya SHA-256 hash
-- GitHub Token disimpan di **localStorage browser lokal** (tidak pernah ke server selain GitHub API)
-- Admin page tidak punya backend — murni client-side
-- Tidak ada data sensitif di repo/source code
+- Password **tidak disimpan plain-text** — hanya SHA-256 hash via Web Crypto API
+- Tidak ada GitHub Token — publish dilakukan manual oleh admin
+- Tidak ada data sensitif di source code / repo
+- Admin page murni client-side — tidak ada koneksi ke server selain GitHub saat push manual
