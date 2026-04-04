@@ -248,20 +248,39 @@ function loadProducts() {
   var loading = document.getElementById('products-loading');
   if (loading) loading.style.display = 'none';
 
-  fetch(PRODUCTS_URL + '?v=' + Date.now())
-    .then(function (r) {
-      if (!r.ok) throw new Error('fetch failed');
-      return r.json();
-    })
-    .then(function (data) {
-      allProducts = data.products || [];
-      renderProducts(allProducts);
-      injectJsonLd(allProducts);
-      initAnimations();
-    })
-    .catch(function () {
-      showProductsError();
-    });
+  // Use Supabase if client is available, otherwise fall back to products.json
+  if (window._sb) {
+    window._sb
+      .from('products')
+      .select('*')
+      .eq('available', true)
+      .order('created_at', { ascending: false })
+      .then(function (result) {
+        if (result.error) throw result.error;
+        allProducts = result.data || [];
+        renderProducts(allProducts);
+        injectJsonLd(allProducts);
+        initAnimations();
+      })
+      .catch(function () {
+        showProductsError();
+      });
+  } else {
+    fetch(PRODUCTS_URL + '?v=' + Date.now())
+      .then(function (r) {
+        if (!r.ok) throw new Error('fetch failed');
+        return r.json();
+      })
+      .then(function (data) {
+        allProducts = data.products || [];
+        renderProducts(allProducts);
+        injectJsonLd(allProducts);
+        initAnimations();
+      })
+      .catch(function () {
+        showProductsError();
+      });
+  }
 }
 
 function showProductsError() {

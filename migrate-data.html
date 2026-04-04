@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sentraq — Migrasi Data ke Supabase</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230071e3'/><text y='.88em' font-size='88' x='16' fill='white' font-family='-apple-system,sans-serif' font-weight='700'>S</text></svg>">
+  <script type="module" src="assets/js/supabase.js"></script>
+  <style>
+    :root {
+      --accent: #0071e3; --accent-h: #0077ed;
+      --bg: #fff; --bg-2: #f5f5f7; --bg-3: #e8e8ed;
+      --text: #1d1d1f; --text-2: #6e6e73; --text-3: #aeaeb2;
+      --border: #d2d2d7; --border-light: #e8e8ed;
+      --success: #34c759; --danger: #ff3b30;
+      --shadow-sm: 0 2px 12px rgba(0,0,0,0.08);
+      --shadow-md: 0 8px 32px rgba(0,0,0,0.13);
+    }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+      background: var(--bg-2); color: var(--text);
+      line-height: 1.5; -webkit-font-smoothing: antialiased;
+      min-height: 100vh; padding: 40px 20px;
+    }
+    .container { max-width: 700px; margin: 0 auto; }
+    .header { margin-bottom: 32px; }
+    .header h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.03em; margin-bottom: 6px; }
+    .header p  { font-size: 15px; color: var(--text-2); }
+    .header-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(255,149,0,0.12); color: #b86400;
+      font-size: 12px; font-weight: 600; padding: 4px 12px;
+      border-radius: 980px; margin-bottom: 16px; letter-spacing: 0.02em;
+    }
+
+    .card {
+      background: var(--bg); border-radius: 18px;
+      border: 1px solid var(--border-light);
+      box-shadow: var(--shadow-sm); padding: 28px;
+      margin-bottom: 16px;
+    }
+    .card h2 { font-size: 17px; font-weight: 700; margin-bottom: 6px; }
+    .card p  { font-size: 14px; color: var(--text-2); margin-bottom: 16px; line-height: 1.6; }
+
+    .steps { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+    .step  { display: flex; gap: 12px; align-items: flex-start; }
+    .step-num {
+      width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0;
+      background: var(--accent); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; margin-top: 1px;
+    }
+    .step-text { font-size: 14px; color: var(--text); line-height: 1.55; }
+    code { background: var(--bg-2); border: 1px solid var(--border); border-radius: 5px; padding: 1px 6px; font-size: 12px; font-family: "SF Mono","Fira Code",monospace; }
+
+    label { display: block; font-size: 12px; font-weight: 600; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 8px; }
+    textarea {
+      width: 100%; border: 1.5px solid var(--border); border-radius: 12px;
+      padding: 14px; font-size: 13px; font-family: "SF Mono","Fira Code",monospace;
+      color: var(--text); background: var(--bg-2); resize: vertical; min-height: 180px;
+      transition: border-color 0.15s;
+    }
+    textarea:focus { outline: none; border-color: var(--accent); background: var(--bg); }
+
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      border-radius: 980px; font-size: 15px; font-weight: 500;
+      cursor: pointer; border: none; padding: 0 24px; min-height: 44px;
+      transition: background 0.15s, opacity 0.15s;
+    }
+    .btn:disabled { opacity: 0.55; cursor: not-allowed; }
+    .btn-primary   { background: var(--accent); color: #fff; }
+    .btn-primary:not(:disabled):hover { background: var(--accent-h); }
+    .btn-secondary { background: var(--bg-2); color: var(--text); }
+    .btn-secondary:not(:disabled):hover { background: var(--bg-3); }
+
+    .actions { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+
+    /* Progress */
+    #progress-wrap { margin-top: 20px; display: none; }
+    .progress-bar-track {
+      width: 100%; height: 8px; background: var(--bg-3); border-radius: 4px; overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%; background: var(--accent); border-radius: 4px;
+      transition: width 0.3s ease; width: 0%;
+    }
+    .progress-label { font-size: 13px; color: var(--text-2); margin-top: 8px; }
+
+    /* Log */
+    #log-wrap { margin-top: 20px; display: none; }
+    #log {
+      background: var(--bg-2); border: 1px solid var(--border-light);
+      border-radius: 12px; padding: 16px;
+      font-size: 12px; font-family: "SF Mono","Fira Code",monospace;
+      color: var(--text-2); max-height: 320px; overflow-y: auto;
+      line-height: 1.8;
+    }
+    .log-ok  { color: #1a7535; }
+    .log-err { color: var(--danger); }
+    .log-info { color: var(--accent); }
+
+    /* Result */
+    .result-banner {
+      display: none; border-radius: 12px; padding: 16px 20px;
+      font-size: 14px; font-weight: 600; margin-top: 16px;
+      align-items: center; gap: 10px;
+    }
+    .result-banner.success { display: flex; background: rgba(52,199,89,0.12); color: #1a7535; }
+    .result-banner.error   { display: flex; background: rgba(255,59,48,0.1);  color: var(--danger); }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner {
+      width: 16px; height: 16px; border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      animation: spin 0.7s linear infinite; flex-shrink: 0;
+    }
+
+    .back-link { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--text-2); margin-bottom: 24px; }
+    .back-link:hover { color: var(--accent); }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <a href="admin.html" class="back-link">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    Kembali ke Admin
+  </a>
+
+  <div class="header">
+    <div class="header-badge">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+      One-Time Migration Tool
+    </div>
+    <h1>Migrasi Data ke Supabase</h1>
+    <p>Import produk dari <code>products.json</code> lama ke database Supabase. Jalankan sekali saja.</p>
+  </div>
+
+  <div class="card">
+    <h2>Cara Penggunaan</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-text">Buka file <code>products.json</code> yang ada di repo GitHub kamu, copy seluruh isinya.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-text">Paste konten JSON ke kotak di bawah ini.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-text">Klik <strong>Import ke Supabase</strong>. Setiap produk akan dimasukkan satu per satu.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-text">Setelah selesai, buka <a href="admin.html">Admin Dashboard</a> untuk memastikan semua produk masuk dengan benar.</div>
+      </div>
+    </div>
+    <p style="margin-bottom:0; font-size:13px; color:var(--text-3)">
+      ⚠️ Produk yang memiliki ID yang sama akan dilewati (tidak ditimpa) untuk menghindari duplikasi.
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>Paste products.json</h2>
+    <p>Paste seluruh konten file <code>products.json</code> di sini.</p>
+
+    <label for="json-input">Konten JSON</label>
+    <textarea id="json-input" placeholder='{ "products": [ ... ] }'></textarea>
+
+    <div class="actions">
+      <button class="btn btn-primary" id="btn-import">
+        <span id="btn-label">Import ke Supabase</span>
+        <span class="spinner" id="btn-spinner" style="display:none"></span>
+      </button>
+      <button class="btn btn-secondary" id="btn-clear">Bersihkan</button>
+    </div>
+
+    <div id="progress-wrap">
+      <div class="progress-bar-track">
+        <div class="progress-bar-fill" id="progress-bar"></div>
+      </div>
+      <div class="progress-label" id="progress-label">Memulai...</div>
+    </div>
+
+    <div class="result-banner" id="result-banner"></div>
+
+    <div id="log-wrap">
+      <label style="margin-top:20px; margin-bottom:8px">Log Aktivitas</label>
+      <div id="log"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  var _sb;
+  var running = false;
+
+  function log(msg, type) {
+    var logEl = document.getElementById('log');
+    document.getElementById('log-wrap').style.display = 'block';
+    var line = document.createElement('div');
+    line.className = type ? 'log-' + type : '';
+    line.textContent = msg;
+    logEl.appendChild(line);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function setProgress(done, total) {
+    var pct = total > 0 ? Math.round((done / total) * 100) : 0;
+    document.getElementById('progress-bar').style.width = pct + '%';
+    document.getElementById('progress-label').textContent = 'Produk ' + done + ' dari ' + total + ' (' + pct + '%)';
+  }
+
+  function setRunning(on) {
+    running = on;
+    document.getElementById('btn-import').disabled = on;
+    document.getElementById('btn-label').style.display = on ? 'none' : '';
+    document.getElementById('btn-spinner').style.display = on ? 'inline-block' : 'none';
+  }
+
+  function showResult(success, msg) {
+    var el = document.getElementById('result-banner');
+    el.className = 'result-banner ' + (success ? 'success' : 'error');
+    el.textContent = msg;
+  }
+
+  document.getElementById('btn-clear').addEventListener('click', function() {
+    document.getElementById('json-input').value = '';
+    document.getElementById('log').innerHTML = '';
+    document.getElementById('log-wrap').style.display = 'none';
+    document.getElementById('progress-wrap').style.display = 'none';
+    document.getElementById('result-banner').className = 'result-banner';
+  });
+
+  document.getElementById('btn-import').addEventListener('click', async function() {
+    if (running) return;
+    if (!_sb) { alert('Supabase belum siap. Tunggu sebentar lalu coba lagi.'); return; }
+
+    var raw = document.getElementById('json-input').value.trim();
+    if (!raw) { alert('Paste konten products.json terlebih dahulu.'); return; }
+
+    var data;
+    try {
+      data = JSON.parse(raw);
+    } catch(e) {
+      alert('JSON tidak valid: ' + e.message);
+      return;
+    }
+
+    var products = data.products || (Array.isArray(data) ? data : null);
+    if (!products || !products.length) {
+      alert('Tidak ada produk ditemukan dalam JSON. Pastikan format: { "products": [...] }');
+      return;
+    }
+
+    // Reset UI
+    document.getElementById('log').innerHTML = '';
+    document.getElementById('log-wrap').style.display = 'none';
+    document.getElementById('progress-wrap').style.display = 'block';
+    document.getElementById('result-banner').className = 'result-banner';
+
+    setRunning(true);
+    log('Memulai import ' + products.length + ' produk...', 'info');
+
+    var ok = 0, skip = 0, fail = 0;
+    var now = new Date().toISOString();
+
+    for (var i = 0; i < products.length; i++) {
+      var p = products[i];
+      setProgress(i + 1, products.length);
+
+      if (!p.id || !p.name) {
+        log('[' + (i+1) + '] LEWATI — tidak ada id atau name: ' + JSON.stringify(p).substring(0, 60), 'err');
+        skip++;
+        continue;
+      }
+
+      var row = {
+        id:          p.id,
+        name:        p.name        || '',
+        category:    p.category    || 'laptop',
+        specs:       p.specs       || '',
+        price:       parseInt(p.price, 10) || 0,
+        description: p.description || '',
+        images:      Array.isArray(p.images) ? p.images : [],
+        available:   p.available !== false,
+        whatsapp:    p.whatsapp    || '',
+        created_at:  now,
+        updated_at:  now
+      };
+
+      // Use upsert=false (insert only), skip on conflict
+      var result = await _sb.from('products').insert([row]);
+      if (result.error) {
+        if (result.error.code === '23505') {
+          log('[' + (i+1) + '] LEWATI (sudah ada): ' + p.name, 'info');
+          skip++;
+        } else {
+          log('[' + (i+1) + '] GAGAL: ' + p.name + ' — ' + result.error.message, 'err');
+          fail++;
+        }
+      } else {
+        log('[' + (i+1) + '] OK: ' + p.name, 'ok');
+        ok++;
+      }
+
+      // Small delay to avoid rate limiting
+      await new Promise(function(r) { setTimeout(r, 80); });
+    }
+
+    setRunning(false);
+    setProgress(products.length, products.length);
+
+    var summary = 'Selesai: ' + ok + ' berhasil, ' + skip + ' dilewati, ' + fail + ' gagal dari ' + products.length + ' produk.';
+    log(summary, fail > 0 ? 'err' : 'ok');
+    showResult(fail === 0, summary);
+  });
+
+  document.addEventListener('DOMContentLoaded', function() {
+    _sb = window._sb;
+  });
+})();
+</script>
+</body>
+</html>
