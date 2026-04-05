@@ -21,6 +21,8 @@
   --shadow-lg:      0 24px 64px rgba(0,0,0,0.18);
   --r:              18px;
   --r-pill:         980px;
+  --whatsapp:       #25d366;
+  --instagram:      linear-gradient(135deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
 }
 
 /* ===== RESET ===== */
@@ -878,10 +880,8 @@ ul, ol { list-style: none; }
   display: flex; align-items: center; justify-content: center;
   margin-bottom: 8px; flex-shrink: 0;
 }
-.contact-icon--whatsapp  { background: #25d366; }
-.contact-icon--instagram {
-  background: linear-gradient(135deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
-}
+.contact-icon--whatsapp  { background: var(--whatsapp); }
+.contact-icon--instagram { background: var(--instagram); }
 .contact-icon--email { background: var(--accent); }
 .contact-name { font-size: 14px; font-weight: 600; color: var(--text); }
 .contact-detail { font-size: 12px; color: var(--text-2); margin-bottom: 8px; }
