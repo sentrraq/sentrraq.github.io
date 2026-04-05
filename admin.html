@@ -96,6 +96,10 @@
       </button>
       <div class="topbar-title" id="topbar-title">Produk</div>
       <div class="topbar-actions">
+        <a href="index.html" target="_blank" class="btn btn-secondary btn-sm topbar-view-btn" title="Lihat website">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          <span class="topbar-view-label">Lihat Website</span>
+        </a>
         <div class="topbar-user" id="topbar-user"></div>
       </div>
     </header>
@@ -257,6 +261,23 @@
             <input type="file" id="f-images" accept="image/*" multiple style="display:none">
           </div>
           <div class="img-previews" id="img-previews"></div>
+          <div class="img-criteria">
+            <div class="img-criteria-title">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              Kriteria Foto (untuk divisi media)
+            </div>
+            <div class="img-criteria-grid">
+              <div class="img-criteria-item"><span class="img-criteria-label">Rasio</span><span>4 : 3 (landscape)</span></div>
+              <div class="img-criteria-item"><span class="img-criteria-label">Ukuran ideal</span><span>800 × 600 px</span></div>
+              <div class="img-criteria-item"><span class="img-criteria-label">Minimum</span><span>400 × 300 px</span></div>
+              <div class="img-criteria-item"><span class="img-criteria-label">Format</span><span>JPG / PNG / WebP</span></div>
+              <div class="img-criteria-item"><span class="img-criteria-label">Maks file</span><span>&lt; 500 KB per foto</span></div>
+              <div class="img-criteria-item"><span class="img-criteria-label">Maks jumlah</span><span>5 foto per produk</span></div>
+            </div>
+            <div class="img-criteria-tips">
+              💡 Foto terang, background bersih/putih, objek di tengah. Gambar akan di-crop otomatis mengikuti rasio 4:3.
+            </div>
+          </div>
         </div>
 
         <div class="field" style="margin-top:4px">
@@ -637,6 +658,12 @@
 
     setSaveLoading(true);
     try {
+      // Verify session is active
+      var sessionCheck = await _sb.auth.getSession();
+      if (!sessionCheck.data.session) {
+        throw new Error('Sesi login habis. Silakan logout dan login ulang.');
+      }
+
       // Upload pending files to Supabase Storage
       var imageUrls = existingImageUrls.slice();
       for (var i = 0; i < pendingFiles.length; i++) {
@@ -761,22 +788,18 @@
   });
 
   /* ── BOOT ── */
-  document.addEventListener('DOMContentLoaded', async function () {
+  document.addEventListener('DOMContentLoaded', function () {
     _sb = window._sb;
     initParticles();
 
-    // Listen for auth state changes
+    // Single source of truth for auth state
     _sb.auth.onAuthStateChange(function (event, session) {
-      if (event === 'SIGNED_OUT') showLogin();
+      if (session) {
+        showDashboard(session.user);
+      } else {
+        showLogin();
+      }
     });
-
-    // Check existing session
-    var sessionResult = await _sb.auth.getSession();
-    if (sessionResult.data.session) {
-      showDashboard(sessionResult.data.session.user);
-    } else {
-      showLogin();
-    }
   });
 
 })();

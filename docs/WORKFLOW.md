@@ -1,6 +1,7 @@
 # Sentraq — Mekanisme & Workflow
 
 > Dokumentasi teknis website dan admin dashboard Sentraq.
+> Arsitektur terbaru menggunakan **Supabase** sebagai backend (database + storage + auth).
 
 ---
 
@@ -9,44 +10,62 @@
 ```
 sentraq.github.io/
 ├── index.html            ← Website utama (publik)
-├── admin.html            ← Dashboard admin
-├── products.json         ← Data produk (sumber kebenaran untuk website)
+├── admin.html            ← Dashboard admin (Supabase-powered)
+├── migrate-data.html     ← Tool migrasi one-time (products.json → Supabase)
 ├── assets/
 │   ├── css/
 │   │   ├── style.css     ← Styling website utama (Apple-style design system)
 │   │   └── admin.css     ← Styling khusus admin dashboard
 │   ├── js/
-│   │   └── script.js     ← Semua logika interaktif website
-│   └── images/           ← Foto produk (opsional, bisa pakai URL eksternal)
+│   │   ├── script.js     ← Semua logika interaktif website
+│   │   └── supabase.js   ← Inisialisasi Supabase client (ESM module)
+│   └── images/           ← Aset statis (bukan foto produk)
 └── docs/
     └── WORKFLOW.md       ← Dokumentasi ini
 ```
 
 ---
 
-## 1. Alur Website Utama (`index.html`)
+## 1. Arsitektur Backend (Supabase)
+
+| Komponen | Detail |
+|----------|--------|
+| **Database** | Supabase PostgreSQL — tabel `products` |
+| **Storage** | Supabase Storage — bucket `product-images` |
+| **Auth** | Supabase Auth — email + password |
+| **Client** | `supabase-js v2` via CDN ESM |
+| **RLS** | Public read · Auth write (hanya user login) |
+
+### Supabase Project
+- **URL:** `https://sytaqvoegmbaorcuvpqx.supabase.co`
+- **Anon Key:** tersimpan di `assets/js/supabase.js`
+
+---
+
+## 2. Alur Website Utama (`index.html`)
 
 ```
 Browser buka index.html
         │
         ▼
-style.css dimuat → tampilan Apple-style
+supabase.js dimuat (ESM) → window._sb dibuat
         │
         ▼
-script.js dijalankan
+script.js dijalankan saat DOMContentLoaded
         │
-        ├─► fetch("products.json")
+        ├─► window._sb.from('products').select('*')
         │         │
-        │         ├─ Berhasil → render produk dari JSON
-        │         └─ Gagal   → tampilkan tombol retry
+        │         ├─ Berhasil → render produk dari Supabase
+        │         └─ Gagal   → tampilkan pesan error + retry
         │
         ├─► initNavbar()           → hamburger menu, scroll effect
         ├─► initFilterBar()        → filter pills (Semua / MacBook / iPhone / iPad / Laptop)
-        ├─► initHeroCycle()        → cycling word di hero heading (MacBook → iPhone → ...)
-        ├─► initEarlyAnimations()  → reveal-up untuk hero, features, contact (dipanggil awal)
-        ├─► initAnimations()       → reveal-up untuk product cards (dipanggil setelah fetch)
-        ├─► initSliders()          → slider foto produk (jika ada gambar)
-        └─► initLazyImages()       → lazy load gambar + fallback jika error
+        ├─► initHeroCycle()        → cycling word di hero heading
+        ├─► initEarlyAnimations()  → reveal-up untuk hero, features, contact
+        ├─► initAnimations()       → reveal-up untuk product cards (setelah fetch)
+        ├─► initSliders()          → slider foto produk
+        ├─► initLazyImages()       → lazy load gambar + fallback jika error
+        └─► injectJsonLd()         → structured data JSON-LD untuk SEO
 ```
 
 ### Alur Filter Produk
@@ -61,69 +80,46 @@ applyFilter("macbook")
         ├─► Card tidak cocok → fade out → display:none
         ├─► Card cocok       → fade in dengan stagger delay
         ├─► Filter pill aktif → class .filter-pill--active
-        ├─► Navbar link aktif → class .nav-filter-active
         └─► Jika kosong      → tampilkan #products-empty
 ```
 
 ---
 
-## 2. Data Produk (`products.json`)
+## 3. Skema Tabel `products` (Supabase)
 
-### Skema
-
-```json
-{
-  "products": [
-    {
-      "id":          "macbook-pro-2020-i5",   // ID unik (kebab-case)
-      "name":        "MacBook Pro 2020 i5",   // Nama tampil
-      "category":    "macbook",               // macbook | iphone | ipad | laptop
-      "specs":       "i5 · 16GB · 512GB SSD", // Spesifikasi singkat
-      "price":       7500000,                 // Harga (angka, Rupiah)
-      "description": "Kondisi mulus...",      // Deskripsi panjang (opsional)
-      "images":      ["https://..."],         // Array URL foto (boleh kosong [])
-      "available":   true,                    // true = Tersedia | false = Terjual
-      "whatsapp":    "Halo Sentraq, ..."      // Pesan WhatsApp pre-filled
-    }
-  ]
-}
-```
+| Kolom | Tipe | Keterangan |
+|-------|------|-----------|
+| `id` | `text` | ID unik produk (kebab-case + timestamp) |
+| `name` | `text` | Nama produk |
+| `category` | `text` | `macbook` · `iphone` · `ipad` · `laptop` |
+| `specs` | `text` | Spesifikasi singkat (pisah dengan ` · `) |
+| `price` | `int8` | Harga dalam Rupiah |
+| `description` | `text` | Deskripsi / kondisi produk |
+| `images` | `text[]` | Array URL foto dari Supabase Storage |
+| `available` | `bool` | `true` = Tersedia · `false` = Terjual |
+| `whatsapp` | `text` | Pesan WA pre-filled |
+| `created_at` | `timestamptz` | Waktu dibuat |
+| `updated_at` | `timestamptz` | Waktu terakhir diperbarui |
 
 ### Kategori yang Didukung
 
-| `category` | Label di filter | Icon |
-|-----------|----------------|------|
-| `macbook` | MacBook        | Laptop SVG |
-| `iphone`  | iPhone         | Phone SVG |
-| `ipad`    | iPad           | Tablet SVG |
-| `laptop`  | Laptop         | Laptop SVG |
+| `category` | Label di filter |
+|-----------|----------------|
+| `macbook` | MacBook |
+| `iphone`  | iPhone |
+| `ipad`    | iPad |
+| `laptop`  | Laptop |
 
 ---
 
-## 3. Admin Dashboard (`admin.html`)
+## 4. Admin Dashboard (`admin.html`)
 
 ### Cara Akses
 
 ```
 Buka: https://sentraq.github.io/admin.html
-Password default: sentraq123
+Login dengan akun Supabase (email + password)
 ```
-
-> **Penting:** Ganti password segera setelah pertama login via tab Pengaturan.
-
-### Arsitektur Admin
-
-Admin berjalan **100% di browser** — tidak ada server atau backend:
-
-| Komponen | Detail |
-|----------|--------|
-| CSS | `assets/css/admin.css` (file terpisah dari website utama) |
-| JS | Inline di dalam `admin.html` |
-| Penyimpanan | `localStorage` browser |
-| Autentikasi | SHA-256 hash password via Web Crypto API |
-| Publish | Manual download → upload ke GitHub |
-
----
 
 ### Alur Login
 
@@ -131,116 +127,129 @@ Admin berjalan **100% di browser** — tidak ada server atau backend:
 Buka admin.html
         │
         ▼
-Cek localStorage["sentraq_admin_pw"]
-        │
-        ├─ Belum ada → hash default "sentraq123" disimpan otomatis
-        └─ Sudah ada → gunakan hash yang tersimpan
+supabase.js → window._sb siap
         │
         ▼
-User masukkan password → di-hash SHA-256 via Web Crypto API
+onAuthStateChange() dipanggil
         │
-        ├─ Hash cocok     → masuk dashboard
-        └─ Hash tidak cocok → tampilkan error
+        ├─ Session ada  → showDashboard() → load tabel produk
+        └─ Session null → showLogin()
+        │
+User isi email + password → signInWithPassword()
+        │
+        ├─ Berhasil → showDashboard()
+        └─ Gagal    → tampilkan pesan error
 ```
-
----
 
 ### Fitur Dashboard
 
 | Tab | Fitur |
 |-----|-------|
-| **Produk** | Lihat, tambah, edit, hapus produk · Statistik total/tersedia/terjual · Search & filter kategori |
-| **Publikasi** | Download `products.json` · Import `products.json` · Preview isi JSON |
-| **Pengaturan** | Ganti password · Muat produk default · Hapus semua produk |
+| **Produk** | Lihat, tambah, edit, hapus produk · Statistik · Search & filter kategori |
+| **Pengaturan** | Ganti password · Hapus semua produk |
 
 ---
 
-### Alur CRUD Produk
+## 5. Alur CRUD Produk
+
+### Tambah / Edit Produk
 
 ```
-Admin tambah / edit / hapus produk
+Admin klik "Tambah Produk" / "Edit"
         │
         ▼
-Data disimpan ke localStorage["sentraq_products"]
+Isi form → klik "Simpan Produk"
         │
         ▼
-Perubahan hanya ada di browser — website publik belum berubah
+Upload foto (jika ada) → Supabase Storage bucket: product-images
         │
         ▼
-Perlu publish → lihat alur Publikasi di bawah
+Insert / Update ke tabel products di Supabase
+        │
+        ▼
+Produk langsung live di website ✓ (tidak perlu deploy ulang)
+```
+
+### Hapus Produk
+
+```
+Admin klik "Hapus" → konfirmasi
+        │
+        ▼
+DELETE dari tabel products
+        │
+        ▼
+Produk langsung hilang dari website ✓
 ```
 
 ---
 
-### Alur Publikasi ke Website
+## 6. Foto Produk — Kriteria untuk Divisi Media
 
-Tidak ada GitHub API — publikasi dilakukan **manual**:
+Foto produk diupload ke **Supabase Storage** (`product-images` bucket) dan ditampilkan di grid website dengan crop otomatis **rasio 4:3**.
 
-```
-1. Tab "Publikasi" → klik "Download products.json"
-        │
-        ▼
-2. File tersimpan ke folder Downloads kamu
-        │
-        ▼
-3. Buka GitHub repo → cari file products.json di root
-        │
-        ▼
-4. Klik ikon pensil (Edit) → "Upload file" → pilih/drag file baru
-   ATAU: langsung replace via GitHub Desktop / git push
-        │
-        ▼
-5. Klik "Commit changes"
-        │
-        ▼
-6. GitHub Pages auto-deploy (~30–60 detik)
-        │
-        ▼
-7. index.html fetch("products.json") → produk diperbarui ✓
-```
+| Kriteria | Ketentuan |
+|----------|-----------|
+| **Rasio** | **4 : 3** (landscape) |
+| **Ukuran ideal** | **800 × 600 px** |
+| **Ukuran minimum** | 400 × 300 px |
+| **Format** | JPG / PNG / WebP |
+| **Maks ukuran file** | < 500 KB per foto |
+| **Maks jumlah** | 5 foto per produk |
 
-> **Import:** Jika kamu pindah browser/perangkat, gunakan tombol "Import products.json"
-> untuk memuat ulang data dari file yang pernah di-download sebelumnya.
+### Tips Foto
+- Latar belakang **bersih / putih / abu-abu terang**
+- Objek produk **di tengah frame**
+- Pencahayaan **terang dan merata** (hindari bayangan keras)
+- Foto **landscape** lebih disarankan dari portrait
+- Gambar akan **di-crop otomatis** ke rasio 4:3 — bagian tengah yang diambil
 
 ---
 
-## 4. Penyimpanan Data (localStorage)
+## 7. RLS (Row Level Security) Supabase
 
-| Key | Isi | Ditulis oleh |
-|-----|-----|-------------|
-| `sentraq_products` | Array produk (JSON string) | Admin dashboard |
-| `sentraq_admin_pw` | SHA-256 hash password | Admin dashboard |
+### Tabel `products`
 
-> `products.json` di repo GitHub adalah **sumber kebenaran** untuk website publik.
-> localStorage hanya digunakan admin sebagai draft kerja sebelum di-publish.
+| Policy | Operasi | Role | Kondisi |
+|--------|---------|------|---------|
+| Public read | SELECT | public | `true` |
+| Auth write | ALL | authenticated | `auth.uid() IS NOT NULL` |
+
+### Storage `product-images`
+
+| Policy | Operasi | Role | Kondisi |
+|--------|---------|------|---------|
+| Public read images | SELECT | public | `bucket_id = 'product-images'` |
+| Auth upload | INSERT | authenticated | `bucket_id = 'product-images'` |
 
 ---
 
-## 5. Cara Menambah Produk Baru (End-to-End)
+## 8. Cara Menambah Produk Baru (End-to-End)
 
 ```
-1. Buka admin.html → login
+1. Buka https://sentraq.github.io/admin.html → login
 2. Klik "Tambah Produk"
 3. Isi form:
    - Nama produk
    - Kategori (macbook / iphone / ipad / laptop)
-   - Spesifikasi singkat
-   - Harga (angka tanpa titik, contoh: 7500000)
-   - Deskripsi (opsional)
-   - URL foto (opsional, satu per baris)
-   - Pesan WhatsApp (auto-generated, bisa diedit)
+   - Harga (angka, contoh: 7500000)
+   - Spesifikasi singkat (pisah dengan · titik tengah)
+   - Deskripsi / kondisi (opsional)
+   - Pesan WhatsApp (opsional, auto-generated jika dikosongkan)
+   - Foto produk (upload JPG/PNG/WebP, maks 5 foto)
    - Status: Tersedia / Terjual
-4. Klik "Simpan" → tersimpan di localStorage
-5. Tab "Publikasi" → Download products.json
-6. Upload ke GitHub repo → Commit changes
-7. Tunggu ~30–60 detik → produk muncul di website
+4. Klik "Simpan Produk"
+5. Produk langsung muncul di website ✓
 ```
 
 ---
 
-## 6. Arsitektur Keamanan
+## 9. Arsitektur Keamanan
 
-- Password **tidak disimpan plain-text** — hanya SHA-256 hash via Web Crypto API
-- Tidak ada GitHub Token — publish dilakukan manual oleh admin
-- Tidak ada data sensitif di source code / repo
-- Admin page murni client-side — tidak ada koneksi ke server selain GitHub saat push manual
+| Aspek | Implementasi |
+|-------|-------------|
+| **Autentikasi** | Supabase Auth (email + password, JWT) |
+| **Otorisasi DB** | RLS — hanya user login yang bisa write |
+| **Otorisasi Storage** | RLS — hanya user login yang bisa upload |
+| **Anon key** | Hanya untuk public read — aman di client-side |
+| **Service role key** | Tidak digunakan di client — tersimpan di Supabase saja |
