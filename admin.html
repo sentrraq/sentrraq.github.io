@@ -407,6 +407,9 @@
     if (user) {
       document.getElementById('topbar-user').textContent = user.email;
     }
+    // Force clear autofilled values from browser
+    document.getElementById('search-input').value = '';
+    document.getElementById('category-filter').value = '';
     loadProductsTable();
   }
 
