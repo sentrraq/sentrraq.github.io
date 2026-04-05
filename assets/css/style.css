@@ -880,8 +880,8 @@ ul, ol { list-style: none; }
   display: flex; align-items: center; justify-content: center;
   margin-bottom: 8px; flex-shrink: 0;
 }
-.contact-icon--whatsapp  { background: var(--whatsapp); }
-.contact-icon--instagram { background: var(--instagram); }
+.contact-icon--whatsapp  { background: var(--accent); }
+.contact-icon--instagram { background: var(--accent); }
 .contact-icon--email { background: var(--accent); }
 .contact-name { font-size: 14px; font-weight: 600; color: var(--text); }
 .contact-detail { font-size: 12px; color: var(--text-2); margin-bottom: 8px; }
