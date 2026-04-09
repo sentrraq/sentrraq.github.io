@@ -489,14 +489,14 @@ var CATEGORY_LABELS = {
 };
 
 function updateEmptyState(filter) {
-  var grid = document.getElementById('product-grid');
+  var grid  = document.getElementById('product-grid');
   var empty = document.getElementById('products-empty');
-  if (!grid || !empty) return;
+  if (!empty) return;
 
-  var hasVisible = Array.prototype.some.call(
+  var hasVisible = grid ? Array.prototype.some.call(
     grid.querySelectorAll('.product-card'),
     function(c) { return c.style.display !== 'none'; }
-  );
+  ) : false;
 
   if (hasVisible) {
     empty.style.display = 'none';
@@ -506,15 +506,14 @@ function updateEmptyState(filter) {
   var label = CATEGORY_LABELS[filter] || filter;
   var title = document.getElementById('products-empty-title');
   var sub   = document.getElementById('products-empty-sub');
-  if (title) title.textContent = filter === 'all'
+  if (title) title.textContent = (filter === 'all')
     ? 'Belum ada produk tersedia'
     : 'Tidak ada produk ' + label + ' saat ini';
-  if (sub) sub.innerHTML = filter === 'all'
+  if (sub) sub.innerHTML = (filter === 'all')
     ? 'Produk belum tersedia saat ini.<br>Silakan cek kembali nanti.'
     : 'Produk kategori <strong>' + label + '</strong> belum tersedia.<br>Silakan cek kembali nanti atau lihat kategori lain.';
 
   empty.style.display = 'flex';
-  empty.removeAttribute('hidden');
 }
 
 function applyFilter(filter) {
