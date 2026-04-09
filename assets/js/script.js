@@ -490,37 +490,48 @@ var CATEGORY_LABELS = {
 
 function updateEmptyState(filter) {
   var grid = document.getElementById('product-grid');
-  if (!grid) return;
+  var empty = document.getElementById('products-empty');
+  if (!grid || !empty) return;
+
   var hasVisible = Array.prototype.some.call(
     grid.querySelectorAll('.product-card'),
     function(c) { return c.style.display !== 'none'; }
   );
-  var empty = document.getElementById('products-empty');
-  if (!empty) return;
-  empty.hidden = hasVisible;
-  if (!hasVisible) {
-    var label = CATEGORY_LABELS[filter] || filter;
-    var title = document.getElementById('products-empty-title');
-    var sub   = document.getElementById('products-empty-sub');
-    if (title) title.textContent = filter === 'all'
-      ? 'Belum ada produk tersedia'
-      : 'Tidak ada produk ' + label + ' saat ini';
-    if (sub) sub.innerHTML = filter === 'all'
-      ? 'Produk belum tersedia saat ini.<br>Silakan cek kembali nanti.'
-      : 'Produk kategori <strong>' + label + '</strong> belum tersedia saat ini.<br>Silakan cek kembali nanti atau lihat kategori lain.';
+
+  if (hasVisible) {
+    empty.style.display = 'none';
+    return;
   }
+
+  var label = CATEGORY_LABELS[filter] || filter;
+  var title = document.getElementById('products-empty-title');
+  var sub   = document.getElementById('products-empty-sub');
+  if (title) title.textContent = filter === 'all'
+    ? 'Belum ada produk tersedia'
+    : 'Tidak ada produk ' + label + ' saat ini';
+  if (sub) sub.innerHTML = filter === 'all'
+    ? 'Produk belum tersedia saat ini.<br>Silakan cek kembali nanti.'
+    : 'Produk kategori <strong>' + label + '</strong> belum tersedia.<br>Silakan cek kembali nanti atau lihat kategori lain.';
+
+  empty.style.display = 'flex';
+  empty.removeAttribute('hidden');
 }
 
 function applyFilter(filter) {
   activeFilter = filter;
   var cards = document.querySelectorAll('#product-grid .product-card');
-  if (!cards.length) return;
 
   // Update active state on navbar filter links
   document.querySelectorAll('[data-filter-nav]').forEach(function (link) {
     var isActive = link.dataset.filterNav === filter;
     link.classList.toggle('nav-filter-active', isActive);
   });
+
+  // If no cards at all, just show empty state
+  if (!cards.length) {
+    updateEmptyState(filter);
+    return;
+  }
 
   // Check reduced motion preference
   var reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
