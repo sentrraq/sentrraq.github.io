@@ -190,6 +190,15 @@ function initFilterBar() {
       });
     });
   });
+
+  // "Lihat Semua Produk" reset button in empty state
+  var resetBtn = document.getElementById('products-empty-reset');
+  if (resetBtn) {
+    resetBtn.addEventListener('click', function() {
+      var allPill = bar.querySelector('[data-filter="all"]');
+      if (allPill) allPill.click();
+    });
+  }
 }
 
 /* ===== JSON-LD ===== */
@@ -463,7 +472,7 @@ function renderProducts(products) {
 
   initSliders();
 
-  if (products.length === 0 && empty) empty.hidden = false;
+  if (products.length === 0) updateEmptyState('all');
 
   var imgs = grid.querySelectorAll('img[data-src]');
   initLazyImages(imgs);
@@ -474,7 +483,12 @@ function renderProducts(products) {
 }
 
 /* ===== FILTER ===== */
-function updateEmptyState() {
+var CATEGORY_LABELS = {
+  all: 'Semua', macbook: 'MacBook', iphone: 'iPhone',
+  ipad: 'iPad', laptop: 'Laptop', tablet: 'Tablet'
+};
+
+function updateEmptyState(filter) {
   var grid = document.getElementById('product-grid');
   if (!grid) return;
   var hasVisible = Array.prototype.some.call(
@@ -482,7 +496,19 @@ function updateEmptyState() {
     function(c) { return c.style.display !== 'none'; }
   );
   var empty = document.getElementById('products-empty');
-  if (empty) empty.hidden = hasVisible ? true : false;
+  if (!empty) return;
+  empty.hidden = hasVisible;
+  if (!hasVisible) {
+    var label = CATEGORY_LABELS[filter] || filter;
+    var title = document.getElementById('products-empty-title');
+    var sub   = document.getElementById('products-empty-sub');
+    if (title) title.textContent = filter === 'all'
+      ? 'Belum ada produk tersedia'
+      : 'Tidak ada produk ' + label + ' saat ini';
+    if (sub) sub.innerHTML = filter === 'all'
+      ? 'Produk belum tersedia saat ini.<br>Silakan cek kembali nanti.'
+      : 'Produk kategori <strong>' + label + '</strong> belum tersedia saat ini.<br>Silakan cek kembali nanti atau lihat kategori lain.';
+  }
 }
 
 function applyFilter(filter) {
@@ -505,7 +531,7 @@ function applyFilter(filter) {
       var match = filter === 'all' || card.getAttribute('data-category') === filter;
       card.style.display = match ? '' : 'none';
     });
-    updateEmptyState();
+    updateEmptyState(filter);
     return;
   }
 
@@ -531,7 +557,7 @@ function applyFilter(filter) {
         matchIdx++;
       }
     });
-    updateEmptyState();
+    updateEmptyState(filter);
   }, 150);
 }
 

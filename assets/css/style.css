@@ -520,13 +520,32 @@ ul, ol { list-style: none; }
 .products-empty {
   grid-column: 1 / -1;
   text-align: center;
-  padding: 64px 24px;
-  color: var(--text-2); font-size: 15px; line-height: 1.6;
+  padding: 72px 24px 64px;
+  display: flex; flex-direction: column;
+  align-items: center; gap: 12px;
 }
-.products-empty span {
-  display: block; font-size: 13px; color: var(--text-3);
-  font-style: italic; margin-top: 4px;
+.products-empty-icon {
+  width: 80px; height: 80px; border-radius: 50%;
+  background: var(--bg-3);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-3); margin-bottom: 8px;
 }
+.products-empty-title {
+  font-size: 16px; font-weight: 600;
+  color: var(--text); margin: 0;
+}
+.products-empty-sub {
+  font-size: 14px; color: var(--text-2);
+  line-height: 1.6; margin: 0;
+}
+.products-empty-reset {
+  margin-top: 8px;
+  background: var(--accent); color: #fff;
+  border: none; border-radius: var(--r-pill);
+  padding: 10px 24px; font-size: 14px; font-weight: 500;
+  cursor: pointer; transition: opacity 0.15s ease;
+}
+.products-empty-reset:hover { opacity: 0.85; }
 
 /* Error state */
 .products-error {
