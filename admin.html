@@ -4,8 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sentraq Admin</title>
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230071e3'/><text y='.88em' font-size='88' x='16' fill='white' font-family='-apple-system,sans-serif' font-weight='700'>S</text></svg>">
-  <link rel="stylesheet" href="assets/css/admin.css">
+  <link rel="icon" type="image/png" href="assets/images/logo-icon.png">
+  <link rel="stylesheet" href="assets/css/admin.css?v=9">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script type="module" src="assets/js/supabase.js"></script>
 </head>
 <body>
@@ -21,7 +23,7 @@
 
   <div class="login-card">
     <div class="login-logo">
-      <div class="login-logo-mark">S</div>
+      <img src="assets/images/logo-full.png" alt="Sentraq" class="login-logo-img">
     </div>
     <div class="login-title">Sentraq Admin</div>
     <div class="login-sub">Masuk dengan akun Supabase kamu</div>
@@ -60,7 +62,7 @@
   <aside class="sidebar" role="navigation" aria-label="Admin navigation">
     <div class="sidebar-header">
       <div class="sidebar-logo">
-        <div class="sidebar-logo-mark">S</div>
+        <img src="assets/images/logo-icon.png" alt="S" class="sidebar-logo-img">
         <div class="sidebar-wordmark">
           Sentraq
           <span>Admin Panel</span>
@@ -72,6 +74,15 @@
       <button class="nav-item active" data-view="products">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><polyline points="8 21 12 17 16 21"/></svg>
         Produk
+      </button>
+      <div class="sidebar-section-label">Laporan</div>
+      <button class="nav-item" data-view="finance">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        Keuangan
+      </button>
+      <button class="nav-item" data-view="history">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Riwayat
       </button>
       <div class="sidebar-section-label">Akun</div>
       <button class="nav-item" data-view="settings">
@@ -96,6 +107,10 @@
       </button>
       <div class="topbar-title" id="topbar-title">Produk</div>
       <div class="topbar-actions">
+        <button class="btn btn-secondary btn-sm" id="theme-cycle-btn" title="Ganti tema">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+          <span id="theme-label">Dark</span>
+        </button>
         <a href="index.html" target="_blank" class="btn btn-secondary btn-sm topbar-view-btn" title="Lihat website">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
           <span class="topbar-view-label">Lihat Website</span>
@@ -118,6 +133,10 @@
             <div class="stat-val success" id="stat-avail">—</div>
           </div>
           <div class="stat-card">
+            <div class="stat-label">On Hold</div>
+            <div class="stat-val warning" id="stat-hold">—</div>
+          </div>
+          <div class="stat-card">
             <div class="stat-label">Terjual</div>
             <div class="stat-val danger" id="stat-sold">—</div>
           </div>
@@ -135,17 +154,54 @@
           </button>
         </div>
 
-        <div class="table-wrap">
-          <div class="table-toolbar">
-            <input class="search-input" id="search-input" type="text" placeholder="Cari nama produk..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
-            <select class="category-filter" id="category-filter">
+        <div class="table-toolbar">
+            <div class="search-wrap">
+              <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input class="search-input" id="search-input" type="text" placeholder="Cari nama produk..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+            </div>
+            <select class="category-filter" id="category-filter" style="display:none">
               <option value="">Semua kategori</option>
               <option value="macbook">MacBook</option>
               <option value="iphone">iPhone</option>
               <option value="ipad">iPad</option>
+              <option value="tablet">Tablet</option>
               <option value="laptop">Laptop</option>
             </select>
+            <div class="custom-select" id="category-custom-select">
+              <button type="button" class="custom-select-trigger" id="category-select-trigger">
+                <span id="category-select-label">Semua kategori</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+              <div class="custom-select-menu" id="category-select-menu">
+                <button type="button" class="custom-select-option active" data-value="">
+                  <svg class="option-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  Semua kategori
+                </button>
+                <button type="button" class="custom-select-option" data-value="macbook">
+                  <svg class="option-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  MacBook
+                </button>
+                <button type="button" class="custom-select-option" data-value="iphone">
+                  <svg class="option-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  iPhone
+                </button>
+                <button type="button" class="custom-select-option" data-value="ipad">
+                  <svg class="option-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  iPad
+                </button>
+                <button type="button" class="custom-select-option" data-value="tablet">
+                  <svg class="option-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  Tablet
+                </button>
+                <button type="button" class="custom-select-option" data-value="laptop">
+                  <svg class="option-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  Laptop
+                </button>
+              </div>
+            </div>
           </div>
+
+        <div class="table-wrap">
           <div id="table-loading" class="table-loading" style="display:none">
             <div class="spinner"></div>
             <span>Memuat data&hellip;</span>
@@ -193,6 +249,116 @@
         </div>
       </div>
 
+      <!-- FINANCE VIEW -->
+      <div class="view" id="view-finance">
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="stat-label">Total Aset</div>
+            <div class="stat-val accent" id="fin-total-assets">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Total Pendapatan</div>
+            <div class="stat-val success" id="fin-total-revenue">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Produk Terjual</div>
+            <div class="stat-val" id="fin-sold-count">—</div>
+          </div>
+        </div>
+
+        <div class="view-header">
+          <div class="view-heading">Log Penjualan</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <select class="history-filter-select" id="fin-month-filter">
+              <option value="">Semua Bulan</option>
+              <option value="1">Januari</option><option value="2">Februari</option>
+              <option value="3">Maret</option><option value="4">April</option>
+              <option value="5">Mei</option><option value="6">Juni</option>
+              <option value="7">Juli</option><option value="8">Agustus</option>
+              <option value="9">September</option><option value="10">Oktober</option>
+              <option value="11">November</option><option value="12">Desember</option>
+            </select>
+            <select class="history-filter-select" id="fin-year-filter">
+              <option value="">Semua Tahun</option>
+            </select>
+            <button class="btn btn-secondary btn-sm" id="btn-print-finance">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+              Cetak PDF
+            </button>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <div id="finance-loading" class="table-loading" style="display:none">
+            <div class="spinner"></div>
+            <span>Memuat data...</span>
+          </div>
+          <div style="overflow-x:auto">
+            <table>
+              <thead>
+                <tr>
+                  <th>Nama Produk</th>
+                  <th>Harga Listing</th>
+                  <th>Harga Aktual</th>
+                  <th>Tanggal Terjual</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="finance-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- HISTORY VIEW -->
+      <div class="view" id="view-history">
+        <div class="view-header" style="margin-bottom:20px">
+          <div class="view-heading">Riwayat Aktivitas</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <select class="history-filter-select" id="history-type-filter">
+              <option value="">Semua Aktivitas</option>
+              <option value="created">Produk Ditambah</option>
+              <option value="status_changed">Perubahan Status</option>
+              <option value="updated">Produk Diperbarui</option>
+              <option value="deleted">Produk Dihapus</option>
+              <option value="archived">Produk Diarsipkan</option>
+            </select>
+            <button class="btn btn-secondary btn-sm" id="btn-clear-history" title="Hapus semua riwayat">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+              Hapus Semua
+            </button>
+          </div>
+        </div>
+
+        <div id="history-loading" class="table-loading" style="display:none">
+          <div class="spinner"></div>
+          <span>Memuat riwayat...</span>
+        </div>
+
+        <div class="history-stats-row" id="history-stats">
+          <div class="history-stat">
+            <span class="history-stat-val accent" id="hstat-total">—</span>
+            <span class="history-stat-label">Total Aktivitas</span>
+          </div>
+          <div class="history-stat">
+            <span class="history-stat-val success" id="hstat-created">—</span>
+            <span class="history-stat-label">Produk Ditambah</span>
+          </div>
+          <div class="history-stat">
+            <span class="history-stat-val warning" id="hstat-status">—</span>
+            <span class="history-stat-label">Perubahan Status</span>
+          </div>
+          <div class="history-stat">
+            <span class="history-stat-val danger" id="hstat-deleted">—</span>
+            <span class="history-stat-label">Dihapus</span>
+          </div>
+        </div>
+
+        <div class="history-timeline" id="history-timeline">
+          <div class="history-empty">Belum ada riwayat aktivitas.</div>
+        </div>
+      </div>
+
     </div><!-- end content-area -->
   </div><!-- end main-area -->
 </div><!-- end admin-shell -->
@@ -223,6 +389,7 @@
               <option value="macbook">MacBook</option>
               <option value="iphone">iPhone</option>
               <option value="ipad">iPad</option>
+              <option value="tablet">Tablet</option>
               <option value="laptop">Laptop</option>
             </select>
           </div>
@@ -258,39 +425,21 @@
             </div>
             <div class="img-upload-text"><span>Klik untuk upload</span> atau drag &amp; drop</div>
             <div class="img-upload-hint">JPG, PNG, WebP &mdash; maks 5 foto, diupload ke Supabase Storage</div>
-            <input type="file" id="f-images" accept="image/*" multiple style="display:none">
+            <input type="file" id="f-images" accept="image/jpeg,image/png,image/webp,image/gif" multiple style="display:none">
           </div>
           <div class="img-previews" id="img-previews"></div>
-          <div class="img-criteria">
-            <div class="img-criteria-title">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-              Kriteria Foto (untuk divisi media)
-            </div>
-            <div class="img-criteria-grid">
-              <div class="img-criteria-item"><span class="img-criteria-label">Rasio</span><span>4 : 3 (landscape)</span></div>
-              <div class="img-criteria-item"><span class="img-criteria-label">Ukuran ideal</span><span>800 × 600 px</span></div>
-              <div class="img-criteria-item"><span class="img-criteria-label">Minimum</span><span>400 × 300 px</span></div>
-              <div class="img-criteria-item"><span class="img-criteria-label">Format</span><span>JPG / PNG / WebP</span></div>
-              <div class="img-criteria-item"><span class="img-criteria-label">Maks file</span><span>&lt; 500 KB per foto</span></div>
-              <div class="img-criteria-item"><span class="img-criteria-label">Maks jumlah</span><span>5 foto per produk</span></div>
-            </div>
-            <div class="img-criteria-tips">
-              💡 Foto terang, background bersih/putih, objek di tengah. Gambar akan di-crop otomatis mengikuti rasio 4:3.
-            </div>
-          </div>
+          <p style="font-size:11px; color:var(--text-muted); margin-top:8px; line-height:1.6;">
+            JPG / PNG / WebP &middot; maks 5 foto &middot; rasio 4:3 direkomendasikan &middot; foto akan di-crop sebelum upload
+          </p>
         </div>
 
-        <div class="field" style="margin-top:4px">
-          <div class="toggle-row">
-            <div>
-              <div class="toggle-label">Tersedia</div>
-              <div class="toggle-sub">Produk ini dapat dibeli pembeli</div>
-            </div>
-            <label class="toggle">
-              <input type="checkbox" id="f-available" checked>
-              <div class="toggle-track"></div>
-            </label>
-          </div>
+        <div class="field">
+          <label for="f-status">Status Produk *</label>
+          <select id="f-status" required>
+            <option value="available">✅ Tersedia</option>
+            <option value="on_hold">⏸ On Hold</option>
+            <option value="sold">🔴 Terjual</option>
+          </select>
         </div>
       </form>
     </div>
@@ -307,10 +456,66 @@
 <!-- TOAST -->
 <div id="toast-container" aria-live="polite" aria-atomic="true"></div>
 
+<!-- ══════════════════ CROP MODAL ══════════════════ -->
+<div class="modal-backdrop" id="crop-modal" role="dialog" aria-modal="true" aria-labelledby="crop-modal-title" style="display:none;">
+  <div class="modal" style="max-width:560px; width:92vw;">
+    <div class="modal-header">
+      <h3 class="modal-title" id="crop-modal-title">Crop Foto</h3>
+      <button class="btn-icon" id="crop-close-btn" aria-label="Tutup">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body" style="padding:16px 20px;">
+      <div id="crop-container" style="max-height:380px; background:#111; border-radius:8px; overflow:hidden;">
+        <img id="crop-image" style="display:block; max-width:100%;">
+      </div>
+      <div style="margin-top:14px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+        <span style="font-size:12px; color:var(--text-muted); font-weight:500;">Rasio:</span>
+        <button class="btn crop-ratio-btn active" data-ratio="1.3333" style="padding:4px 12px; font-size:12px; min-height:28px;">4:3</button>
+        <button class="btn crop-ratio-btn" data-ratio="1" style="padding:4px 12px; font-size:12px; min-height:28px;">1:1</button>
+        <button class="btn crop-ratio-btn" data-ratio="1.7778" style="padding:4px 12px; font-size:12px; min-height:28px;">16:9</button>
+        <button class="btn crop-ratio-btn" data-ratio="0" style="padding:4px 12px; font-size:12px; min-height:28px;">Bebas</button>
+        <span id="crop-queue-info" style="margin-left:auto; font-size:12px; color:var(--text-muted);"></span>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="crop-skip-btn">Lewati</button>
+      <button class="btn btn-primary" id="crop-confirm-btn">Potong &amp; Gunakan</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ LIGHTBOX ══════════════════ -->
+<div id="lightbox" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.88); align-items:center; justify-content:center; cursor:zoom-out;" role="dialog" aria-modal="true" aria-label="Preview foto">
+  <button id="lightbox-close" style="position:absolute; top:16px; right:16px; background:rgba(255,255,255,0.1); border:none; color:#fff; width:36px; height:36px; border-radius:50%; font-size:20px; cursor:pointer; display:flex; align-items:center; justify-content:center; backdrop-filter:blur(8px);" aria-label="Tutup">&times;</button>
+  <img id="lightbox-img" src="" alt="Preview" style="max-width:90vw; max-height:88vh; border-radius:10px; object-fit:contain; box-shadow:0 24px 80px rgba(0,0,0,0.7); user-select:none;" onclick="event.stopPropagation()">
+</div>
+
 <!-- ══════════════════ SCRIPT ══════════════════ -->
+<script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
 <script>
 (function () {
   'use strict';
+
+  /* ── LIGHTBOX ── */
+  (function () {
+    var lb    = document.getElementById('lightbox');
+    var lbImg = document.getElementById('lightbox-img');
+    function openLightbox(src) {
+      lbImg.src = src;
+      lb.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+    }
+    function closeLightbox() {
+      lb.style.display = 'none';
+      lbImg.src = '';
+      document.body.style.overflow = '';
+    }
+    lb.addEventListener('click', closeLightbox);
+    document.getElementById('lightbox-close').addEventListener('click', function (e) { e.stopPropagation(); closeLightbox(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && lb.style.display === 'flex') closeLightbox(); });
+    window._openLightbox = openLightbox;
+  })();
 
   /* ── STATE ── */
   var _sb;
@@ -320,6 +525,12 @@
 
   /* ── UTILS ── */
   function formatRp(n) { return 'Rp\u00a0' + Number(n).toLocaleString('id-ID'); }
+  function formatRpShort(n) {
+    n = Number(n);
+    if (n >= 1e9)  return 'Rp\u00a0' + (n / 1e9).toLocaleString('id-ID', { maximumFractionDigits: 1 }) + '\u00a0M';
+    if (n >= 1e6)  return 'Rp\u00a0' + (n / 1e6).toLocaleString('id-ID', { maximumFractionDigits: 1 }) + '\u00a0Jt';
+    return formatRp(n);
+  }
 
   function generateId(name) {
     return name.toLowerCase()
@@ -410,6 +621,10 @@
     // Force clear autofilled values from browser
     document.getElementById('search-input').value = '';
     document.getElementById('category-filter').value = '';
+    var lbl = document.getElementById('category-select-label');
+    if (lbl) lbl.textContent = 'Semua kategori';
+    var opts = document.querySelectorAll('.custom-select-option');
+    opts.forEach(function(o) { o.classList.toggle('active', o.dataset.value === ''); });
     loadProductsTable();
   }
 
@@ -454,7 +669,7 @@
   });
 
   /* ── NAVIGATION ── */
-  var VIEW_TITLES = { products: 'Produk', settings: 'Pengaturan' };
+  var VIEW_TITLES = { products: 'Produk', settings: 'Pengaturan', finance: 'Keuangan', history: 'Riwayat' };
 
   function showView(name) {
     document.querySelectorAll('.view').forEach(function (v) { v.classList.remove('active'); });
@@ -464,6 +679,8 @@
     var nav = document.querySelector('[data-view="' + name + '"]');
     if (nav) nav.classList.add('active');
     document.getElementById('topbar-title').textContent = VIEW_TITLES[name] || name;
+    if (name === 'finance') loadFinanceData();
+    if (name === 'history') loadHistoryData();
   }
 
   document.querySelectorAll('.nav-item[data-view]').forEach(function (btn) {
@@ -502,10 +719,13 @@
   /* ── STATS ── */
   function updateStats(products) {
     var total = products.length;
-    var avail = products.filter(function (p) { return p.available; }).length;
+    var avail = products.filter(function(p){ return p.status === 'available'; }).length;
+    var hold  = products.filter(function(p){ return p.status === 'on_hold'; }).length;
+    var sold  = products.filter(function(p){ return p.status === 'sold'; }).length;
     document.getElementById('stat-total').textContent = total;
     document.getElementById('stat-avail').textContent = avail;
-    document.getElementById('stat-sold').textContent  = total - avail;
+    document.getElementById('stat-hold').textContent  = hold;
+    document.getElementById('stat-sold').textContent  = sold;
     document.getElementById('stat-cats').textContent  = new Set(products.map(function (p) { return p.category; })).size;
     document.getElementById('product-count').textContent = '(' + total + ')';
   }
@@ -513,7 +733,7 @@
   /* ── TABLE ── */
   async function loadProductsTable() {
     setTableLoading(true);
-    var result = await _sb.from('products').select('*').order('created_at', { ascending: false });
+    var result = await _sb.from('products').select('*').eq('archived', false).order('created_at', { ascending: false });
     setTableLoading(false);
 
     if (result.error) {
@@ -554,10 +774,13 @@
         '<td><div class="td-name">' + escHtml(p.name) + '</div><div class="td-spec">' + escHtml(p.specs || '') + '</div></td>' +
         '<td class="hide-sm"><span class="badge badge-' + escHtml(p.category) + '">' + escHtml(capFirst(p.category)) + '</span></td>' +
         '<td class="td-price hide-sm">' + formatRp(p.price) + '</td>' +
-        '<td>' + (p.available
+        '<td>' + (p.status === 'available'
           ? '<span class="badge badge-available">Tersedia</span>'
+          : p.status === 'on_hold'
+          ? '<span class="badge badge-hold">On Hold</span>'
           : '<span class="badge badge-sold">Terjual</span>') + '</td>' +
         '<td><div class="td-actions">' +
+          (p.status === 'sold' ? '<button class="btn btn-archive btn-sm btn-archive-prod" data-id="' + escHtml(p.id) + '">Arsipkan</button>' : '') +
           '<button class="btn btn-secondary btn-sm btn-edit" data-id="' + escHtml(p.id) + '">Edit</button>' +
           '<button class="btn btn-danger btn-sm btn-delete" data-id="' + escHtml(p.id) + '">Hapus</button>' +
         '</div></td>' +
@@ -568,20 +791,86 @@
   document.getElementById('search-input').addEventListener('input', function () { renderTable(allProducts); });
   document.getElementById('category-filter').addEventListener('change', function () { renderTable(allProducts); });
 
+  /* ── CUSTOM CATEGORY SELECT ── */
+  (function () {
+    var wrap    = document.getElementById('category-custom-select');
+    var trigger = document.getElementById('category-select-trigger');
+    var menu    = document.getElementById('category-select-menu');
+    var label   = document.getElementById('category-select-label');
+    var hidden  = document.getElementById('category-filter');
+    var options = menu.querySelectorAll('.custom-select-option');
+
+    function openSelect() {
+      wrap.classList.add('open');
+    }
+    function closeSelect() { wrap.classList.remove('open'); }
+
+    trigger.addEventListener('click', function (e) {
+      e.stopPropagation();
+      wrap.classList.contains('open') ? closeSelect() : openSelect();
+    });
+
+    options.forEach(function (opt) {
+      opt.addEventListener('click', function () {
+        var val  = opt.dataset.value;
+        var text = opt.textContent.trim();
+        // Update hidden select
+        hidden.value = val;
+        // Update label
+        label.textContent = text;
+        // Update active state
+        options.forEach(function (o) { o.classList.remove('active'); });
+        opt.classList.add('active');
+        closeSelect();
+        renderTable(allProducts);
+      });
+    });
+
+    document.addEventListener('click', function (e) {
+      if (!wrap.contains(e.target)) closeSelect();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') closeSelect();
+    });
+  }());
+
   document.getElementById('product-tbody').addEventListener('click', function (e) {
-    var editBtn   = e.target.closest('.btn-edit');
-    var deleteBtn = e.target.closest('.btn-delete');
-    if (editBtn)   openEditModal(editBtn.dataset.id);
-    if (deleteBtn) deleteProduct(deleteBtn.dataset.id);
+    var editBtn    = e.target.closest('.btn-edit');
+    var deleteBtn  = e.target.closest('.btn-delete');
+    var archiveBtn = e.target.closest('.btn-archive-prod');
+    if (editBtn)    openEditModal(editBtn.dataset.id);
+    if (deleteBtn)  deleteProduct(deleteBtn.dataset.id);
+    if (archiveBtn) archiveProduct(archiveBtn.dataset.id);
   });
+
+  /* ── ARCHIVE ── */
+  async function archiveProduct(id) {
+    if (!confirm('Arsipkan produk ini? Produk akan disembunyikan dari daftar aktif.')) return;
+    var prod = allProducts.find(function(x){ return x.id === id; });
+    var result = await _sb.from('products').update({ archived: true }).eq('id', id);
+    if (result.error) { showToast('Gagal mengarsipkan: ' + result.error.message, 'error'); return; }
+    if (prod) await logHistory({ product_id: id, product_name: prod.name, product_price: prod.price || 0, event_type: 'archived', old_status: prod.status });
+    showToast('Produk diarsipkan', 'info');
+    await loadProductsTable();
+    loadFinanceData();
+    loadHistoryData();
+  }
 
   /* ── DELETE ── */
   async function deleteProduct(id) {
     if (!confirm('Hapus produk ini? Tindakan tidak dapat dibatalkan.')) return;
+    var prod = allProducts.find(function(x){return x.id===id;});
     var result = await _sb.from('products').delete().eq('id', id);
     if (result.error) { showToast('Gagal menghapus: ' + result.error.message, 'error'); return; }
+    await _sb.from('sales_log').delete().eq('product_id', id);
+    if (prod) {
+      var hr = await _sb.from('product_history').insert([{ product_id: id, product_name: prod.name, product_price: prod.price || 0, event_type: 'deleted', old_status: prod.status, new_status: null }]);
+      if (hr.error) showToast('Gagal catat riwayat: ' + hr.error.message, 'error');
+    }
     showToast('Produk dihapus', 'info');
-    loadProductsTable();
+    await loadProductsTable();
+    await loadFinanceData();
+    await loadHistoryData();
   }
 
   /* ── MODAL ── */
@@ -594,6 +883,7 @@
   function closeModal() {
     document.getElementById('product-modal').classList.remove('open');
     document.getElementById('product-form').reset();
+    syncCustomSelect('f-category');
     document.getElementById('price-preview').textContent = '';
     // Revoke object URLs to free memory
     pendingFiles.forEach(function (pf) { URL.revokeObjectURL(pf.preview); });
@@ -621,11 +911,12 @@
     document.getElementById('f-id').value       = p.id;
     document.getElementById('f-name').value     = p.name || '';
     document.getElementById('f-category').value = p.category || '';
+    syncCustomSelect('f-category');
     document.getElementById('f-price').value    = p.price || '';
     document.getElementById('f-specs').value    = p.specs || '';
     document.getElementById('f-desc').value     = p.description || '';
     document.getElementById('f-wa').value       = p.whatsapp || '';
-    document.getElementById('f-available').checked = !!p.available;
+    document.getElementById('f-status').value = p.status || 'available';
     document.getElementById('price-preview').textContent = p.price ? formatRp(p.price) : '';
     existingImageUrls = (p.images || []).slice();
     pendingFiles = [];
@@ -655,7 +946,7 @@
     var specs    = document.getElementById('f-specs').value.trim();
     var desc     = document.getElementById('f-desc').value.trim();
     var wa       = document.getElementById('f-wa').value.trim();
-    var avail    = document.getElementById('f-available').checked;
+    var status   = document.getElementById('f-status').value;
 
     if (!wa) wa = 'Halo Sentraq, saya tertarik dengan ' + name + ' harga ' + formatRp(price);
 
@@ -678,7 +969,7 @@
       var productData = {
         id: id, name: name, category: category, specs: specs,
         price: price, description: desc, images: imageUrls,
-        available: avail, whatsapp: wa, updated_at: now
+        status: status, available: status === 'available', whatsapp: wa, updated_at: now
       };
 
       var result;
@@ -691,9 +982,43 @@
 
       if (result.error) throw new Error(result.error.message);
 
+      // Log history
+      if (isEdit) {
+        var prevProd = allProducts.find(function(x){return x.id===id;});
+        if (prevProd && prevProd.status !== status) {
+          await logHistory({ product_id: id, product_name: name, product_price: price, event_type: 'status_changed', old_status: prevProd.status, new_status: status });
+        } else {
+          await logHistory({ product_id: id, product_name: name, product_price: price, event_type: 'updated', old_status: prevProd ? prevProd.status : null, new_status: status });
+        }
+      } else {
+        await logHistory({ product_id: id, product_name: name, product_price: price, event_type: 'created', old_status: null, new_status: status });
+      }
+
+      // Insert into sales_log if status is sold and wasn't sold before
+      if (status === 'sold') {
+        var wasPreviouslySold = isEdit && allProducts.find(function(x){return x.id===id;}) && allProducts.find(function(x){return x.id===id;}).status === 'sold';
+        if (!wasPreviouslySold) {
+          await _sb.from('sales_log').insert([{
+            product_id: id,
+            product_name: name,
+            product_price: price,
+            actual_price: price,
+            sold_at: now
+          }]);
+        }
+      } else if (isEdit) {
+        // Status changed away from sold → remove from sales_log
+        var prevProduct = allProducts.find(function(x){return x.id===id;});
+        if (prevProduct && prevProduct.status === 'sold') {
+          await _sb.from('sales_log').delete().eq('product_id', id);
+        }
+      }
+
       showToast(isEdit ? 'Produk berhasil diperbarui' : 'Produk berhasil ditambahkan');
       closeModal();
-      loadProductsTable();
+      await loadProductsTable();
+      await loadFinanceData();
+      await loadHistoryData();
     } catch (err) {
       showToast('Gagal menyimpan: ' + err.message, 'error');
     } finally {
@@ -725,28 +1050,123 @@
     handleFiles(e.dataTransfer.files);
   });
 
+  /* ── CROP ── */
+  var cropQueue = [];
+  var cropperInst = null;
+  var currentCropAspect = 4 / 3;
+
+  function openCropModal(file) {
+    var img = document.getElementById('crop-image');
+    var oldSrc = img.src;
+    if (oldSrc && oldSrc.startsWith('blob:')) URL.revokeObjectURL(oldSrc);
+    img.src = URL.createObjectURL(file);
+
+    document.getElementById('crop-modal').style.display = 'flex';
+    document.getElementById('crop-queue-info').textContent =
+      cropQueue.length > 0 ? (cropQueue.indexOf(file) + 1) + ' / ' + (cropQueue.length) : '';
+
+    // reset ratio buttons
+    document.querySelectorAll('.crop-ratio-btn').forEach(function (b) {
+      b.classList.toggle('active', b.dataset.ratio === '1.3333');
+      b.classList.toggle('btn-secondary', b.dataset.ratio !== '1.3333');
+    });
+    currentCropAspect = 4 / 3;
+
+    img.onload = function () {
+      if (cropperInst) { cropperInst.destroy(); cropperInst = null; }
+      cropperInst = new Cropper(img, {
+        aspectRatio: currentCropAspect,
+        viewMode: 1,
+        autoCropArea: 0.95,
+        responsive: true,
+        background: false,
+        movable: true,
+        zoomable: true,
+        rotatable: false,
+      });
+    };
+  }
+
+  function closeCropModal() {
+    document.getElementById('crop-modal').style.display = 'none';
+    if (cropperInst) { cropperInst.destroy(); cropperInst = null; }
+  }
+
+  function processNextInQueue() {
+    if (!cropQueue.length) { renderImagePreviews(); return; }
+    var file = cropQueue[0];
+    var qEl = document.getElementById('crop-queue-info');
+    var total = cropQueue._total || cropQueue.length;
+    qEl.textContent = (total - cropQueue.length + 1) + ' / ' + total;
+    openCropModal(file);
+  }
+
+  document.getElementById('crop-confirm-btn').addEventListener('click', function () {
+    if (!cropperInst) return;
+    var file = cropQueue.shift();
+    cropperInst.getCroppedCanvas({ maxWidth: 1600, maxHeight: 1200, imageSmoothingQuality: 'high' })
+      .toBlob(function (blob) {
+        var croppedFile = new File([blob], file.name.replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' });
+        pendingFiles.push({ file: croppedFile, preview: URL.createObjectURL(croppedFile) });
+        closeCropModal();
+        processNextInQueue();
+      }, 'image/jpeg', 0.92);
+  });
+
+  document.getElementById('crop-skip-btn').addEventListener('click', function () {
+    var file = cropQueue.shift();
+    pendingFiles.push({ file: file, preview: URL.createObjectURL(file) });
+    closeCropModal();
+    processNextInQueue();
+  });
+
+  document.getElementById('crop-close-btn').addEventListener('click', function () {
+    cropQueue = [];
+    closeCropModal();
+    renderImagePreviews();
+  });
+
+  document.querySelectorAll('.crop-ratio-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      document.querySelectorAll('.crop-ratio-btn').forEach(function (b) {
+        b.classList.remove('active'); b.classList.add('btn-secondary');
+      });
+      btn.classList.add('active'); btn.classList.remove('btn-secondary');
+      var ratio = parseFloat(btn.dataset.ratio);
+      currentCropAspect = ratio || NaN;
+      if (cropperInst) cropperInst.setAspectRatio(currentCropAspect);
+    });
+  });
+
   function handleFiles(files) {
     var remaining = 5 - existingImageUrls.length - pendingFiles.length;
     if (remaining <= 0) { showToast('Maksimal 5 foto', 'error'); return; }
-    Array.from(files)
-      .filter(function (f) { return f.type.startsWith('image/'); })
-      .slice(0, remaining)
-      .forEach(function (file) {
-        pendingFiles.push({ file: file, preview: URL.createObjectURL(file) });
-        renderImagePreviews();
-      });
+    var heicFound = false;
+    var validFiles = Array.from(files).filter(function (f) {
+      var isHeic = f.type === 'image/heic' || f.type === 'image/heif' ||
+                   f.name.toLowerCase().endsWith('.heic') || f.name.toLowerCase().endsWith('.heif');
+      if (isHeic) { heicFound = true; return false; }
+      return f.type.startsWith('image/');
+    }).slice(0, remaining);
+    if (heicFound) {
+      showToast('Format HEIC tidak didukung browser. Konversi dulu ke JPG/PNG di iPhone: Pengaturan → Kamera → Format → Paling Kompatibel.', 'error');
+    }
+    if (!validFiles.length) return;
+    cropQueue = validFiles;
+    cropQueue._total = validFiles.length;
+    processNextInQueue();
   }
 
   function renderImagePreviews() {
     var existingHtml = existingImageUrls.map(function (url, i) {
       return '<div class="img-preview-item">' +
-        '<img src="' + escHtml(url) + '" alt="">' +
+        '<img src="' + escHtml(url) + '" alt="" class="img-preview-thumb" title="Klik untuk preview">' +
         '<button type="button" class="img-preview-remove" data-type="existing" data-idx="' + i + '" aria-label="Hapus foto">&times;</button>' +
       '</div>';
     }).join('');
     var pendingHtml = pendingFiles.map(function (pf, i) {
       return '<div class="img-preview-item img-preview-new">' +
-        '<img src="' + escHtml(pf.preview) + '" alt="">' +
+        '<img src="' + escHtml(pf.preview) + '" alt="" class="img-preview-thumb" title="Klik untuk preview">' +
         '<div class="img-preview-badge">Baru</div>' +
         '<button type="button" class="img-preview-remove" data-type="pending" data-idx="' + i + '" aria-label="Hapus foto">&times;</button>' +
       '</div>';
@@ -756,15 +1176,404 @@
 
   document.getElementById('img-previews').addEventListener('click', function (e) {
     var btn = e.target.closest('.img-preview-remove');
-    if (!btn) return;
-    var idx = parseInt(btn.dataset.idx, 10);
-    if (btn.dataset.type === 'existing') {
-      existingImageUrls.splice(idx, 1);
-    } else {
-      URL.revokeObjectURL(pendingFiles[idx].preview);
-      pendingFiles.splice(idx, 1);
+    if (btn) {
+      var idx = parseInt(btn.dataset.idx, 10);
+      if (btn.dataset.type === 'existing') {
+        existingImageUrls.splice(idx, 1);
+      } else {
+        URL.revokeObjectURL(pendingFiles[idx].preview);
+        pendingFiles.splice(idx, 1);
+      }
+      renderImagePreviews();
+      return;
     }
-    renderImagePreviews();
+    var thumb = e.target.closest('.img-preview-thumb');
+    if (thumb && window._openLightbox) window._openLightbox(thumb.src);
+  });
+
+  /* ── FINANCE ── */
+  async function loadFinanceData() {
+    document.getElementById('finance-loading').style.display = 'flex';
+
+    // Fetch langsung dari DB — jangan pakai allProducts cache, agar selalu akurat
+    var prodResult = await _sb.from('products').select('id, price, status').eq('archived', false);
+    var freshProducts = (prodResult.data || []);
+
+    // Cleanup: hapus sales_log untuk produk yang TIDAK lagi berstatus sold
+    var nonSoldIds = freshProducts.filter(function(p){ return p.status !== 'sold'; }).map(function(p){ return p.id; });
+    if (nonSoldIds.length > 0) {
+      var cleanupResult = await _sb.from('sales_log').delete().in('product_id', nonSoldIds);
+      if (cleanupResult.error) showToast('Cleanup error: ' + cleanupResult.error.message, 'error');
+    }
+
+    var totalAssets = freshProducts.reduce(function(sum, p) { return sum + (p.price || 0); }, 0);
+    document.getElementById('fin-total-assets').textContent = formatRp(totalAssets);
+
+    // Populate year dropdown sekali saja
+    var yearSel = document.getElementById('fin-year-filter');
+    if (yearSel.options.length <= 1) {
+      for (var y = 2030; y >= 2026; y--) {
+        var opt = document.createElement('option');
+        opt.value = y; opt.textContent = y;
+        if (y === 2026) opt.selected = true;
+        yearSel.appendChild(opt);
+      }
+      refreshCustomSelect('fin-year-filter');
+    }
+
+    var allLogs = (await _sb.from('sales_log').select('*').order('sold_at', { ascending: false })).data || [];
+    document.getElementById('finance-loading').style.display = 'none';
+
+    // Filter berdasarkan bulan & tahun
+    var selMonth = parseInt(document.getElementById('fin-month-filter').value) || 0;
+    var selYear  = parseInt(document.getElementById('fin-year-filter').value)  || 0;
+    var logs = allLogs.filter(function(l) {
+      var d = new Date(l.sold_at);
+      if (selYear  && d.getFullYear() !== selYear)      return false;
+      if (selMonth && (d.getMonth() + 1) !== selMonth)  return false;
+      return true;
+    });
+
+    var totalRevenue = logs.reduce(function(sum, l) { return sum + (l.actual_price != null ? l.actual_price : (l.product_price || 0)); }, 0);
+    document.getElementById('fin-total-revenue').textContent = formatRp(totalRevenue);
+    document.getElementById('fin-sold-count').textContent = logs.length;
+
+    var tbody = document.getElementById('finance-tbody');
+    if (!logs.length) {
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="5">Belum ada penjualan' + (selMonth || selYear ? ' di periode ini' : '') + '.</td></tr>';
+      return;
+    }
+
+    function renderFinanceRows(logsArr) {
+      tbody.innerHTML = logsArr.map(function(l) {
+        var date = new Date(l.sold_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
+        var actualPrice = l.actual_price != null ? l.actual_price : l.product_price;
+        var isNego = actualPrice !== l.product_price;
+        return '<tr data-log-id="' + l.id + '">' +
+          '<td><div class="td-name">' + escHtml(l.product_name) + '</div></td>' +
+          '<td class="td-price td-muted">' + formatRp(l.product_price) + '</td>' +
+          '<td class="td-price">' +
+            '<span class="actual-price-display' + (isNego ? ' is-nego' : '') + '">' + formatRp(actualPrice) + '</span>' +
+            '<input class="actual-price-input" type="number" value="' + actualPrice + '" style="display:none" min="0">' +
+          '</td>' +
+          '<td>' + date + '</td>' +
+          '<td class="td-actions">' +
+            '<button class="btn-icon btn-edit-actual" title="Edit harga aktual">' +
+              '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>' +
+            '</button>' +
+            '<button class="btn-icon btn-save-actual" title="Simpan" style="display:none;color:var(--success)">' +
+              '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' +
+            '</button>' +
+            '<button class="btn-icon btn-cancel-actual" title="Batal" style="display:none;color:var(--danger)">' +
+              '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>' +
+            '</button>' +
+          '</td>' +
+        '</tr>';
+      }).join('');
+
+      // bind edit/save/cancel events
+      tbody.querySelectorAll('tr[data-log-id]').forEach(function(row) {
+        var logId    = row.dataset.logId;
+        var display  = row.querySelector('.actual-price-display');
+        var input    = row.querySelector('.actual-price-input');
+        var btnEdit  = row.querySelector('.btn-edit-actual');
+        var btnSave  = row.querySelector('.btn-save-actual');
+        var btnCancel= row.querySelector('.btn-cancel-actual');
+        var origVal  = input.value;
+
+        btnEdit.addEventListener('click', function() {
+          display.style.display = 'none';
+          input.style.display = 'inline-block';
+          btnEdit.style.display = 'none';
+          btnSave.style.display = 'inline-flex';
+          btnCancel.style.display = 'inline-flex';
+          input.focus();
+        });
+
+        btnCancel.addEventListener('click', function() {
+          input.value = origVal;
+          display.style.display = '';
+          input.style.display = 'none';
+          btnEdit.style.display = '';
+          btnSave.style.display = 'none';
+          btnCancel.style.display = 'none';
+        });
+
+        btnSave.addEventListener('click', async function() {
+          var newVal = parseInt(input.value, 10);
+          if (isNaN(newVal) || newVal < 0) { showToast('Harga tidak valid', 'error'); return; }
+          btnSave.disabled = true;
+          var res = await _sb.from('sales_log').update({ actual_price: newVal }).eq('id', logId);
+          btnSave.disabled = false;
+          if (res.error) { showToast('Gagal menyimpan: ' + res.error.message, 'error'); return; }
+          origVal = String(newVal);
+          display.textContent = formatRp(newVal);
+          // update nego indicator
+          var logEntry = logsArr.find(function(x){ return String(x.id) === logId; });
+          if (logEntry) {
+            display.classList.toggle('is-nego', newVal !== logEntry.product_price);
+          }
+          display.style.display = '';
+          input.style.display = 'none';
+          btnEdit.style.display = '';
+          btnSave.style.display = 'none';
+          btnCancel.style.display = 'none';
+          // recalc total revenue
+          var updatedRevenue = logsArr.reduce(function(sum, l) {
+            if (String(l.id) === logId) return sum + newVal;
+            return sum + (l.actual_price != null ? l.actual_price : (l.product_price || 0));
+          }, 0);
+          document.getElementById('fin-total-revenue').textContent = formatRp(updatedRevenue);
+          showToast('Harga aktual diperbarui');
+        });
+      });
+    }
+
+    renderFinanceRows(logs);
+  }
+
+  /* ── HISTORY ── */
+  async function logHistory(entry) {
+    var r = await _sb.from('product_history').insert([entry]);
+    if (r.error) showToast('Gagal catat riwayat: ' + r.error.message, 'error');
+  }
+
+  async function loadHistoryData() {
+    document.getElementById('history-loading').style.display = 'flex';
+    var filterType = document.getElementById('history-type-filter').value;
+
+    var query = _sb.from('product_history').select('*').order('changed_at', { ascending: false }).limit(200);
+    if (filterType) query = query.eq('event_type', filterType);
+
+    var result = await query;
+    document.getElementById('history-loading').style.display = 'none';
+
+    if (result.error) { showToast('Gagal memuat riwayat: ' + result.error.message, 'error'); return; }
+
+    var logs = result.data || [];
+    document.getElementById('hstat-total').textContent   = logs.length;
+    document.getElementById('hstat-created').textContent = logs.filter(function(l){return l.event_type==='created';}).length;
+    document.getElementById('hstat-status').textContent  = logs.filter(function(l){return l.event_type==='status_changed';}).length;
+    document.getElementById('hstat-deleted').textContent = logs.filter(function(l){return l.event_type==='deleted';}).length;
+
+    var timeline = document.getElementById('history-timeline');
+    if (!logs.length) {
+      timeline.innerHTML = '<div class="history-empty">Belum ada riwayat aktivitas.</div>';
+      return;
+    }
+
+    var statusLabel = { available: 'Tersedia', on_hold: 'On Hold', sold: 'Terjual' };
+    var eventMeta = {
+      created:        { icon: 'M12 5v14M5 12l7-7 7 7', color: 'success', label: 'Ditambahkan' },
+      updated:        { icon: 'M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z', color: 'accent', label: 'Diperbarui' },
+      status_changed: { icon: 'M4 4v5h.582M20 20v-5h-.581M5.077 9A9 9 0 0 1 19.938 15M4.062 9A9 9 0 0 0 18.938 15', color: 'warning', label: 'Status Berubah' },
+      deleted:        { icon: 'M3 6h18M8 6V4h8v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6', color: 'danger', label: 'Dihapus' },
+      archived:       { icon: 'M21 8v13H3V8M23 3H1v5h22V3zM10 12h4', color: 'warning', label: 'Diarsipkan' },
+    };
+
+    timeline.innerHTML = logs.map(function(l) {
+      var meta = eventMeta[l.event_type] || eventMeta.updated;
+      var dt   = new Date(l.changed_at);
+      var dateStr = dt.toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' });
+      var timeStr = dt.toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit' });
+
+      var detail = '';
+      if (l.event_type === 'status_changed') {
+        var from = statusLabel[l.old_status] || l.old_status || '?';
+        var to   = statusLabel[l.new_status] || l.new_status || '?';
+        detail = '<span class="history-status-from">' + escHtml(from) + '</span>'
+               + '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:var(--text-muted)"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>'
+               + '<span class="history-status-to history-status-' + escHtml(l.new_status || '') + '">' + escHtml(to) + '</span>';
+      } else if (l.event_type === 'created' || l.event_type === 'deleted') {
+        var st = statusLabel[l.new_status || l.old_status] || '';
+        if (st) detail = '<span class="history-status-chip history-status-' + escHtml(l.new_status || l.old_status || '') + '">' + escHtml(st) + '</span>';
+      }
+
+      return '<div class="history-item">'
+        + '<div class="history-dot history-dot-' + meta.color + '">'
+        +   '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="' + meta.icon + '"/></svg>'
+        + '</div>'
+        + '<div class="history-line"></div>'
+        + '<div class="history-content">'
+        +   '<div class="history-event-tag history-tag-' + meta.color + '">' + meta.label + '</div>'
+        +   '<div class="history-name">' + escHtml(l.product_name || '—') + '</div>'
+        +   (detail ? '<div class="history-detail">' + detail + '</div>' : '')
+        +   '<div class="history-price">' + formatRp(l.product_price) + '</div>'
+        +   '<div class="history-time">' + dateStr + ' · ' + timeStr + '</div>'
+        + '</div>'
+        + '</div>';
+    }).join('');
+  }
+
+  document.getElementById('history-type-filter').addEventListener('change', function() {
+    loadHistoryData();
+  });
+
+  /* ── CUSTOM SELECT UTIL ── */
+  var CHEVRON_SVG = '<svg class="csel-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>';
+
+  function initCustomSelect(selectId) {
+    var nat = document.getElementById(selectId);
+    if (!nat) return;
+    var wrapper = document.createElement('div');
+    wrapper.className = 'cselect';
+    wrapper.id = 'csel-' + selectId;
+
+    var trigger = document.createElement('div');
+    trigger.className = 'cselect-trigger';
+
+    var valSpan = document.createElement('span');
+    valSpan.className = 'csel-label';
+    trigger.appendChild(valSpan);
+    trigger.insertAdjacentHTML('beforeend', CHEVRON_SVG);
+
+    var menu = document.createElement('div');
+    menu.className = 'cselect-menu';
+
+    function buildMenu() {
+      menu.innerHTML = '';
+      Array.from(nat.options).forEach(function(opt) {
+        var item = document.createElement('div');
+        item.className = 'cselect-opt' + (opt.selected ? ' active' : '');
+        item.dataset.val = opt.value;
+        item.textContent = opt.text;
+        item.addEventListener('click', function(e) {
+          e.stopPropagation();
+          nat.value = opt.value;
+          valSpan.textContent = opt.text;
+          menu.querySelectorAll('.cselect-opt').forEach(function(o) { o.classList.remove('active'); });
+          item.classList.add('active');
+          wrapper.classList.remove('open');
+          nat.dispatchEvent(new Event('change'));
+        });
+        menu.appendChild(item);
+      });
+      var sel = nat.options[nat.selectedIndex];
+      if (sel) valSpan.textContent = sel.text;
+    }
+    buildMenu();
+
+    trigger.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var wasOpen = wrapper.classList.contains('open');
+      document.querySelectorAll('.cselect.open').forEach(function(el) { el.classList.remove('open'); });
+      if (!wasOpen) {
+        wrapper.classList.add('open');
+      }
+    });
+
+    wrapper.appendChild(trigger);
+    wrapper.appendChild(menu);
+    nat.parentNode.insertBefore(wrapper, nat);
+
+    wrapper._buildMenu = buildMenu;
+    wrapper._valSpan = valSpan;
+    wrapper._nat = nat;
+  }
+
+  function refreshCustomSelect(selectId) {
+    var wrapper = document.getElementById('csel-' + selectId);
+    if (!wrapper || !wrapper._buildMenu) return;
+    wrapper._buildMenu();
+  }
+
+  function syncCustomSelect(selectId) {
+    var wrapper = document.getElementById('csel-' + selectId);
+    if (!wrapper) return;
+    var nat = wrapper._nat;
+    var valSpan = wrapper._valSpan;
+    if (!nat || !valSpan) return;
+    var menu = wrapper.querySelector('.cselect-menu');
+    if (menu) menu.querySelectorAll('.cselect-opt').forEach(function(o) {
+      o.classList.toggle('active', o.dataset.val === nat.value);
+    });
+    var sel = nat.options[nat.selectedIndex];
+    if (sel) valSpan.textContent = sel.text;
+  }
+
+  document.getElementById('btn-clear-history').addEventListener('click', async function() {
+    if (!confirm('Hapus semua riwayat aktivitas? Tindakan ini tidak dapat dibatalkan.')) return;
+    var result = await _sb.from('product_history').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    if (result.error) { showToast('Gagal: ' + result.error.message, 'error'); return; }
+    showToast('Riwayat dihapus', 'info');
+    loadHistoryData();
+  });
+
+  /* ── FINANCE FILTER + PRINT ── */
+  document.getElementById('fin-month-filter').addEventListener('change', loadFinanceData);
+  document.getElementById('fin-year-filter').addEventListener('change', loadFinanceData);
+
+  document.getElementById('btn-print-finance').addEventListener('click', function() {
+    var bulanNames = ['','Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+    var selMonth   = parseInt(document.getElementById('fin-month-filter').value) || 0;
+    var selYear    = document.getElementById('fin-year-filter').value || '';
+    var periodeLabel = (selMonth ? bulanNames[selMonth] + ' ' : '') + (selYear || 'Semua Tahun');
+
+    var rows = [];
+    document.querySelectorAll('#finance-tbody tr[data-log-id]').forEach(function(tr) {
+      var cells = tr.querySelectorAll('td');
+      var nameEl = cells[0] ? cells[0].querySelector('.td-name') : null;
+      rows.push({
+        name:  nameEl ? nameEl.textContent.trim() : (cells[0] ? cells[0].textContent.trim() : ''),
+        listPrice: cells[1] ? cells[1].textContent.trim() : '',
+        price: cells[2] ? cells[2].querySelector('.actual-price-display').textContent.trim() : '',
+        date:  cells[3] ? cells[3].textContent.trim() : ''
+      });
+    });
+
+    if (!rows.length) { showToast('Tidak ada data untuk dicetak', 'error'); return; }
+
+    var jsPDF = window.jspdf ? window.jspdf.jsPDF : (window.jsPDF || null);
+    if (!jsPDF) { showToast('Library PDF belum siap, coba lagi', 'error'); return; }
+
+    var doc = new jsPDF();
+    var pageW = doc.internal.pageSize.getWidth();
+
+    // Header
+    doc.setFontSize(18); doc.setFont('helvetica', 'bold');
+    doc.text('LAPORAN PENJUALAN', pageW / 2, 20, { align: 'center' });
+    doc.setFontSize(12); doc.setFont('helvetica', 'normal');
+    doc.text('Sentraq — Pre-owned Electronics', pageW / 2, 28, { align: 'center' });
+    doc.setFontSize(10);
+    doc.text('Periode: ' + periodeLabel, pageW / 2, 35, { align: 'center' });
+    doc.text('Dicetak: ' + new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }), pageW / 2, 41, { align: 'center' });
+
+    doc.setDrawColor(180); doc.setLineWidth(0.4);
+    doc.line(14, 46, pageW - 14, 46);
+
+    // Kolom header tabel
+    doc.setFontSize(9); doc.setFont('helvetica', 'bold');
+    doc.text('No', 14, 54);
+    doc.text('Nama Produk', 22, 54);
+    doc.text('Harga Aktual', 135, 54);
+    doc.text('Tanggal Terjual', 168, 54);
+    doc.line(14, 57, pageW - 14, 57);
+
+    // Baris data
+    doc.setFont('helvetica', 'normal');
+    var y = 64;
+    rows.forEach(function(r, i) {
+      if (y > 275) { doc.addPage(); y = 20; }
+      doc.text(String(i + 1), 14, y);
+      doc.text(r.name.substring(0, 45), 22, y);
+      doc.text(r.price, 135, y);
+      doc.text(r.date, 168, y);
+      y += 8;
+    });
+
+    doc.line(14, y + 2, pageW - 14, y + 2);
+    y += 10;
+
+    // Total
+    doc.setFont('helvetica', 'bold');
+    var totalText = document.getElementById('fin-total-revenue').textContent;
+    var countText = document.getElementById('fin-sold-count').textContent + ' produk terjual';
+    doc.text(countText, 14, y);
+    doc.text('Total: ' + totalText, pageW - 14, y, { align: 'right' });
+
+    var fname = 'Laporan-Sentraq-' + periodeLabel.replace(/\s+/g, '-') + '.pdf';
+    doc.save(fname);
+    showToast('PDF berhasil diunduh');
   });
 
   /* ── SETTINGS ── */
@@ -794,6 +1603,43 @@
   document.addEventListener('DOMContentLoaded', function () {
     _sb = window._sb;
     initParticles();
+
+    // ── THEME SWITCHER ──
+    var themes = [
+      { id: 'dark',     label: 'Dark' },
+      { id: 'light',    label: 'Light' },
+      { id: 'midnight', label: 'Midnight' },
+      { id: 'forest',   label: 'Forest' },
+      { id: 'sunset',   label: 'Sunset' }
+    ];
+    var savedTheme = localStorage.getItem('sentraq-theme') || 'dark';
+    applyTheme(savedTheme);
+
+    document.getElementById('theme-cycle-btn').addEventListener('click', function() {
+      var current = document.documentElement.getAttribute('data-theme') || 'dark';
+      var idx = themes.findIndex(function(t) { return t.id === current; });
+      var next = themes[(idx + 1) % themes.length];
+      applyTheme(next.id);
+      localStorage.setItem('sentraq-theme', next.id);
+    });
+
+    function applyTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      var t = themes.find(function(x) { return x.id === theme; });
+      var label = document.getElementById('theme-label');
+      if (label && t) label.textContent = t.label;
+    }
+
+    // Close custom selects on outside click
+    document.addEventListener('click', function() {
+      document.querySelectorAll('.cselect.open').forEach(function(el) { el.classList.remove('open'); });
+    });
+
+    // Init custom select dropdowns
+    initCustomSelect('fin-month-filter');
+    initCustomSelect('fin-year-filter');
+    initCustomSelect('history-type-filter');
+    initCustomSelect('f-category');
 
     // Single source of truth for auth state
     _sb.auth.onAuthStateChange(function (event, session) {
