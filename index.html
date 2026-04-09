@@ -18,7 +18,7 @@
   <meta name="theme-color" content="#ffffff">
   <link rel="dns-prefetch" href="https://raw.githubusercontent.com">
   <title>Sentraq — Premium Pre-Owned Electronics</title>
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230071e3'/><text y='.88em' font-size='88' x='16' fill='white' font-family='-apple-system,sans-serif' font-weight='700'>S</text></svg>">
+  <link rel="icon" type="image/png" href="assets/images/logo-icon.png">
   <link rel="stylesheet" href="assets/css/style.css">
   <script type="module" src="assets/js/supabase.js"></script>
 </head>
@@ -29,29 +29,21 @@
   <!-- NAVBAR -->
   <header class="navbar" role="banner">
     <div class="navbar-inner">
-      <a class="navbar-wordmark" href="#" aria-label="Sentraq — Home">Sentraq</a>
+      <a class="navbar-wordmark" href="#" aria-label="Sentraq — Home">
+        <img src="assets/images/logo-full.png" alt="Sentraq" class="navbar-logo-img">
+      </a>
       <nav class="navbar-links" aria-label="Main navigation">
         <a href="#products" data-filter-nav="macbook">MacBook</a>
         <a href="#products" data-filter-nav="iphone">iPhone</a>
         <a href="#products" data-filter-nav="ipad">iPad</a>
+        <a href="#products" data-filter-nav="tablet">Tablet</a>
         <a href="#products" data-filter-nav="laptop">Laptop</a>
         <a href="#contact">Tentang Kami</a>
       </nav>
       <div class="navbar-actions">
         <a href="https://wa.me/6285716577307" class="btn btn-primary btn-sm" target="_blank" rel="noopener noreferrer">Hubungi Kami</a>
-        <button class="hamburger" aria-label="Buka menu" aria-expanded="false" aria-controls="mobile-nav">
-          <span></span><span></span><span></span>
-        </button>
       </div>
     </div>
-    <nav class="mobile-nav" id="mobile-nav" aria-hidden="true">
-      <a href="#products" data-filter-nav="macbook">MacBook</a>
-      <a href="#products" data-filter-nav="iphone">iPhone</a>
-      <a href="#products" data-filter-nav="ipad">iPad</a>
-      <a href="#products" data-filter-nav="laptop">Laptop</a>
-      <a href="#contact">Tentang Kami</a>
-      <a href="https://wa.me/6285716577307" class="btn btn-primary" target="_blank" rel="noopener noreferrer">Hubungi Kami</a>
-    </nav>
   </header>
 
   <main id="main">
@@ -207,6 +199,7 @@
         <button class="filter-pill" data-filter="macbook">MacBook</button>
         <button class="filter-pill" data-filter="iphone">iPhone</button>
         <button class="filter-pill" data-filter="ipad">iPad</button>
+        <button class="filter-pill" data-filter="tablet">Tablet</button>
         <button class="filter-pill" data-filter="laptop">Laptop</button>
       </div>
       <div class="product-grid" id="product-grid">
@@ -311,7 +304,7 @@
     <div class="footer-inner">
       <div class="footer-top">
         <div class="footer-brand">
-          <p class="footer-wordmark">Sentraq</p>
+          <img src="assets/images/logo-full.png" alt="Sentraq" class="footer-logo-img">
           <p class="footer-desc">Premium pre-owned electronics.<br>Jakarta, Indonesia.</p>
         </div>
         <div class="footer-links">
@@ -321,6 +314,7 @@
               <li><a href="#products" data-filter-nav="macbook">MacBook</a></li>
               <li><a href="#products" data-filter-nav="iphone">iPhone</a></li>
               <li><a href="#products" data-filter-nav="ipad">iPad</a></li>
+              <li><a href="#products" data-filter-nav="tablet">Tablet</a></li>
               <li><a href="#products" data-filter-nav="laptop">Laptop</a></li>
             </ul>
           </div>
@@ -347,5 +341,16 @@
   </a>
 
   <script src="assets/js/script.js"></script>
+
+  <!-- Image Lightbox -->
+  <div id="img-lightbox" role="dialog" aria-modal="true" aria-label="Lightbox foto">
+    <div class="lb-inner">
+      <img class="lb-img" src="" alt="Foto produk">
+    </div>
+    <button class="lb-close" aria-label="Tutup">&times;</button>
+    <button class="lb-arrow lb-prev" aria-label="Foto sebelumnya">&#8249;</button>
+    <button class="lb-arrow lb-next" aria-label="Foto berikutnya">&#8250;</button>
+    <div class="lb-counter"></div>
+  </div>
 </body>
 </html>
