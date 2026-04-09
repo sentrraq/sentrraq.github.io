@@ -1415,6 +1415,8 @@
   function initCustomSelect(selectId) {
     var nat = document.getElementById(selectId);
     if (!nat) return;
+    // Prevent duplicate init
+    if (document.getElementById('csel-' + selectId)) return;
     var wrapper = document.createElement('div');
     wrapper.className = 'cselect';
     wrapper.id = 'csel-' + selectId;
@@ -1465,6 +1467,7 @@
     wrapper.appendChild(trigger);
     wrapper.appendChild(menu);
     nat.parentNode.insertBefore(wrapper, nat);
+    nat.style.display = 'none';
 
     wrapper._buildMenu = buildMenu;
     wrapper._valSpan = valSpan;
