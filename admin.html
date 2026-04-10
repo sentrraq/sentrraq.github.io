@@ -412,12 +412,6 @@
         </div>
 
         <div class="field">
-          <label for="f-wa">Pesan WhatsApp (opsional)</label>
-          <input id="f-wa" type="text" placeholder="Kosongkan untuk auto-generate">
-          <div class="field-hint">Dikosongkan = otomatis dibuat dari nama &amp; harga</div>
-        </div>
-
-        <div class="field">
           <label>Foto Produk</label>
           <div class="img-upload-area" id="drop-zone">
             <div class="img-upload-icon">
@@ -915,7 +909,6 @@
     document.getElementById('f-price').value    = p.price || '';
     document.getElementById('f-specs').value    = p.specs || '';
     document.getElementById('f-desc').value     = p.description || '';
-    document.getElementById('f-wa').value       = p.whatsapp || '';
     document.getElementById('f-status').value = p.status || 'available';
     document.getElementById('price-preview').textContent = p.price ? formatRp(p.price) : '';
     existingImageUrls = (p.images || []).slice();
@@ -945,10 +938,7 @@
     var price    = parseInt(document.getElementById('f-price').value, 10) || 0;
     var specs    = document.getElementById('f-specs').value.trim();
     var desc     = document.getElementById('f-desc').value.trim();
-    var wa       = document.getElementById('f-wa').value.trim();
     var status   = document.getElementById('f-status').value;
-
-    if (!wa) wa = 'Halo Sentraq, saya tertarik dengan ' + name + ' harga ' + formatRp(price);
 
     setSaveLoading(true);
     try {
@@ -969,7 +959,7 @@
       var productData = {
         id: id, name: name, category: category, specs: specs,
         price: price, description: desc, images: imageUrls,
-        status: status, available: status === 'available', whatsapp: wa, updated_at: now
+        status: status, available: status === 'available', updated_at: now
       };
 
       var result;

@@ -390,7 +390,12 @@ function buildCard(p) {
     : isOnHold
     ? '<span class="card-badge on-hold">On Hold</span>'
     : '<span class="card-badge available">Tersedia</span>';
-  var waText = encodeURIComponent(p.whatsapp || ('Halo Sentraq, saya tertarik dengan ' + p.name + ' harga ' + formatPrice(p.price)));
+  var productLink = 'https://sentraq.github.io/#product-' + encodeURIComponent(p.id);
+  var specsLine = p.specs ? '\nSpesifikasi: ' + p.specs : '';
+  var descLine  = p.description ? '\nKondisi: ' + p.description : '';
+  var waText = encodeURIComponent(
+    'Halo Sentraq, saya tertarik dengan ' + p.name + ' harga ' + formatPrice(p.price) + '.' + specsLine + descLine + '\nLink produk: ' + productLink
+  );
 
   var mediaHTML;
   if (!hasImages) {
@@ -423,6 +428,7 @@ function buildCard(p) {
 
   var article = document.createElement('article');
   article.className = 'product-card';
+  article.id = 'product-' + p.id;
   article.dataset.category = p.category;
   article.setAttribute('aria-label', safeName);
   if (isSold) {
@@ -480,6 +486,21 @@ function renderProducts(products) {
   if (typeof activeFilter !== 'undefined' && activeFilter !== 'all') {
     applyFilter(activeFilter);
   }
+
+  // Scroll to product if opened via direct link (e.g. from WA)
+  scrollToProductFromHash();
+}
+
+function scrollToProductFromHash() {
+  var hash = window.location.hash; // e.g. #product-macbook-pro-2020-i5-ibox-abc123
+  if (!hash || !hash.startsWith('#product-')) return;
+  var card = document.querySelector(hash);
+  if (!card) return;
+  setTimeout(function() {
+    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    card.classList.add('product-highlight');
+    setTimeout(function() { card.classList.remove('product-highlight'); }, 2200);
+  }, 400);
 }
 
 /* ===== FILTER ===== */
