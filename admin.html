@@ -148,10 +148,13 @@
 
         <div class="view-header">
           <div class="view-heading">Daftar Produk <span id="product-count"></span></div>
-          <button class="btn btn-primary btn-sm" id="btn-add-product">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Tambah Produk
-          </button>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <button class="btn btn-secondary btn-sm" id="btn-toggle-archive">Tampilkan Arsip</button>
+            <button class="btn btn-primary btn-sm" id="btn-add-product">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Tambah Produk
+            </button>
+          </div>
         </div>
 
         <div class="table-toolbar">
@@ -838,6 +841,59 @@
   });
 
   /* ── ARCHIVE ── */
+  var showingArchive = false;
+
+  document.getElementById('btn-toggle-archive').addEventListener('click', async function() {
+    showingArchive = !showingArchive;
+    this.textContent = showingArchive ? 'Sembunyikan Arsip' : 'Tampilkan Arsip';
+    this.classList.toggle('btn-primary', showingArchive);
+    this.classList.toggle('btn-secondary', !showingArchive);
+    if (showingArchive) {
+      await loadArchivedProducts();
+    } else {
+      await loadProductsTable();
+    }
+  });
+
+  async function loadArchivedProducts() {
+    setTableLoading(true);
+    var result = await _sb.from('products').select('*').eq('archived', true).order('created_at', { ascending: false });
+    setTableLoading(false);
+    if (result.error) { showToast('Gagal memuat arsip: ' + result.error.message, 'error'); return; }
+    var archived = result.data || [];
+    var tbody = document.getElementById('product-tbody');
+    if (!archived.length) {
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="6">Tidak ada produk di arsip.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = archived.map(function(p) {
+      var imgHtml = (p.images && p.images.length)
+        ? '<img class="td-img" src="' + escHtml(p.images[0]) + '" alt="" loading="lazy">'
+        : '<div class="td-img-placeholder"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>';
+      return '<tr style="opacity:0.7">' +
+        '<td>' + imgHtml + '</td>' +
+        '<td><div class="td-name">' + escHtml(p.name) + '</div><div class="td-spec">' + escHtml(p.specs || '') + '</div></td>' +
+        '<td class="hide-sm"><span class="badge badge-' + escHtml(p.category) + '">' + escHtml(capFirst(p.category)) + '</span></td>' +
+        '<td class="td-price hide-sm">' + formatRp(p.price) + '</td>' +
+        '<td><span class="badge badge-sold">Diarsipkan</span></td>' +
+        '<td><div class="td-actions">' +
+          '<button class="btn btn-secondary btn-sm btn-restore-prod" data-id="' + escHtml(p.id) + '">Pulihkan</button>' +
+        '</div></td>' +
+      '</tr>';
+    }).join('');
+    tbody.querySelectorAll('.btn-restore-prod').forEach(function(btn) {
+      btn.addEventListener('click', function() { restoreProduct(this.dataset.id); });
+    });
+  }
+
+  async function restoreProduct(id) {
+    if (!confirm('Pulihkan produk ini ke daftar aktif dengan status Tersedia?')) return;
+    var result = await _sb.from('products').update({ archived: false, status: 'available' }).eq('id', id);
+    if (result.error) { showToast('Gagal memulihkan: ' + result.error.message, 'error'); return; }
+    showToast('Produk berhasil dipulihkan');
+    await loadArchivedProducts();
+  }
+
   async function archiveProduct(id) {
     if (!confirm('Arsipkan produk ini? Produk akan disembunyikan dari daftar aktif.')) return;
     var prod = allProducts.find(function(x){ return x.id === id; });
