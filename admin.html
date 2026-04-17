@@ -1298,9 +1298,10 @@
           if (res.error) { showToast('Gagal menyimpan: ' + res.error.message, 'error'); return; }
           origVal = String(newVal);
           display.textContent = formatRp(newVal);
-          // update nego indicator
+          // update nego indicator + sync logsArr so recalc uses fresh values
           var logEntry = logsArr.find(function(x){ return String(x.id) === logId; });
           if (logEntry) {
+            logEntry.actual_price = newVal;
             display.classList.toggle('is-nego', newVal !== logEntry.product_price);
           }
           display.style.display = '';
