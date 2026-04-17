@@ -1583,9 +1583,13 @@
     var checked = Array.from(finTbody.querySelectorAll('input.fin-row-check:checked'));
     if (!checked.length) return;
     if (!confirm('Hapus ' + checked.length + ' entri log penjualan ini?')) return;
-    var ids = checked.map(function(cb) { return parseInt(cb.dataset.logId, 10); });
-    var res = await _sb.from('sales_log').delete().in('id', ids);
-    if (res.error) { showToast('Gagal menghapus: ' + res.error.message, 'error'); return; }
+    var ids = checked.map(function(cb) { return cb.dataset.logId; });
+    var failed = false;
+    for (var i = 0; i < ids.length; i++) {
+      var res = await _sb.from('sales_log').delete().eq('id', ids[i]);
+      if (res.error) { showToast('Gagal menghapus: ' + res.error.message, 'error'); failed = true; break; }
+    }
+    if (failed) return;
     showToast('Berhasil dihapus');
     document.getElementById('fin-select-all').checked = false;
     document.getElementById('btn-delete-selected').style.display = 'none';
