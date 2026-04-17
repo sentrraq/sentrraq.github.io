@@ -1289,32 +1289,9 @@
     var tbody = document.getElementById('finance-tbody');
     if (!logs.length) {
       tbody.innerHTML = '<tr class="empty-row"><td colspan="6">Belum ada penjualan' + (selMonth || selYear ? ' di periode ini' : '') + '.</td></tr>';
+      document.getElementById('btn-delete-selected').style.display = 'none';
       return;
     }
-
-    function updateDeleteBtn() {
-      var checked = tbody.querySelectorAll('input.fin-row-check:checked');
-      var btn = document.getElementById('btn-delete-selected');
-      document.getElementById('selected-count').textContent = checked.length;
-      btn.style.display = checked.length ? 'inline-flex' : 'none';
-    }
-
-    document.getElementById('fin-select-all').onchange = function() {
-      tbody.querySelectorAll('input.fin-row-check').forEach(function(cb) { cb.checked = this.checked; }, this);
-      updateDeleteBtn();
-    };
-
-    document.getElementById('btn-delete-selected').onclick = async function() {
-      var checked = Array.from(tbody.querySelectorAll('input.fin-row-check:checked'));
-      if (!checked.length) return;
-      if (!confirm('Hapus ' + checked.length + ' entri log penjualan ini?')) return;
-      var ids = checked.map(function(cb) { return cb.dataset.logId; });
-      var res = await _sb.from('sales_log').delete().in('id', ids);
-      if (res.error) { showToast('Gagal menghapus: ' + res.error.message, 'error'); return; }
-      showToast('Berhasil dihapus');
-      document.getElementById('fin-select-all').checked = false;
-      await loadFinanceData();
-    };
 
     function renderFinanceRows(logsArr) {
       tbody.innerHTML = logsArr.map(function(l) {
@@ -1344,9 +1321,13 @@
         '</tr>';
       }).join('');
 
-      // bind checkbox change
+      // update delete button count when any row checkbox changes
       tbody.querySelectorAll('input.fin-row-check').forEach(function(cb) {
-        cb.addEventListener('change', updateDeleteBtn);
+        cb.addEventListener('change', function() {
+          var count = tbody.querySelectorAll('input.fin-row-check:checked').length;
+          document.getElementById('selected-count').textContent = count;
+          document.getElementById('btn-delete-selected').style.display = count ? 'inline-flex' : 'none';
+        });
       });
 
       // bind edit/save/cancel events
@@ -1584,6 +1565,29 @@
   /* ── FINANCE FILTER + PRINT ── */
   document.getElementById('fin-month-filter').addEventListener('change', loadFinanceData);
   document.getElementById('fin-year-filter').addEventListener('change', loadFinanceData);
+
+  /* ── FINANCE SELECT ALL + BULK DELETE ── */
+  document.getElementById('fin-select-all').addEventListener('change', function() {
+    var finTbody = document.getElementById('finance-tbody');
+    finTbody.querySelectorAll('input.fin-row-check').forEach(function(cb) { cb.checked = this.checked; }, this);
+    var count = finTbody.querySelectorAll('input.fin-row-check:checked').length;
+    document.getElementById('selected-count').textContent = count;
+    document.getElementById('btn-delete-selected').style.display = count ? 'inline-flex' : 'none';
+  });
+
+  document.getElementById('btn-delete-selected').addEventListener('click', async function() {
+    var finTbody = document.getElementById('finance-tbody');
+    var checked = Array.from(finTbody.querySelectorAll('input.fin-row-check:checked'));
+    if (!checked.length) return;
+    if (!confirm('Hapus ' + checked.length + ' entri log penjualan ini?')) return;
+    var ids = checked.map(function(cb) { return cb.dataset.logId; });
+    var res = await _sb.from('sales_log').delete().in('id', ids);
+    if (res.error) { showToast('Gagal menghapus: ' + res.error.message, 'error'); return; }
+    showToast('Berhasil dihapus');
+    document.getElementById('fin-select-all').checked = false;
+    document.getElementById('btn-delete-selected').style.display = 'none';
+    await loadFinanceData();
+  });
 
   document.getElementById('btn-print-finance').addEventListener('click', function() {
     var bulanNames = ['','Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
