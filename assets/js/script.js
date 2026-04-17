@@ -137,6 +137,22 @@ function initNavbar() {
     updateFab();
   }
 
+  // Hamburger toggle
+  var hamburger = navbar.querySelector('.hamburger');
+  if (hamburger) {
+    hamburger.addEventListener('click', function () {
+      var open = navbar.classList.toggle('nav-open');
+      hamburger.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    // Close menu when a mobile-nav link is clicked
+    navbar.querySelectorAll('.mobile-nav a').forEach(function (link) {
+      link.addEventListener('click', function () {
+        navbar.classList.remove('nav-open');
+        hamburger.setAttribute('aria-expanded', 'false');
+      });
+    });
+  }
+
   document.querySelectorAll('[data-filter-nav]').forEach(function (link) {
     link.addEventListener('click', function (e) {
       e.preventDefault();
