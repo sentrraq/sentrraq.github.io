@@ -1046,13 +1046,16 @@
       if (status === 'sold') {
         var wasPreviouslySold = isEdit && allProducts.find(function(x){return x.id===id;}) && allProducts.find(function(x){return x.id===id;}).status === 'sold';
         if (!wasPreviouslySold) {
-          await _sb.from('sales_log').insert([{
-            product_id: id,
-            product_name: name,
-            product_price: price,
-            actual_price: price,
-            sold_at: now
-          }]);
+          var existingLog = await _sb.from('sales_log').select('id').eq('product_id', id).maybeSingle();
+          if (!existingLog.data) {
+            await _sb.from('sales_log').insert([{
+              product_id: id,
+              product_name: name,
+              product_price: price,
+              actual_price: price,
+              sold_at: now
+            }]);
+          }
         }
       } else if (isEdit) {
         // Status changed away from sold → remove from sales_log
