@@ -1583,7 +1583,7 @@
     var checked = Array.from(finTbody.querySelectorAll('input.fin-row-check:checked'));
     if (!checked.length) return;
     if (!confirm('Hapus ' + checked.length + ' entri log penjualan ini?')) return;
-    var ids = checked.map(function(cb) { return cb.dataset.logId; });
+    var ids = checked.map(function(cb) { return parseInt(cb.dataset.logId, 10); });
     var res = await _sb.from('sales_log').delete().in('id', ids);
     if (res.error) { showToast('Gagal menghapus: ' + res.error.message, 'error'); return; }
     showToast('Berhasil dihapus');
