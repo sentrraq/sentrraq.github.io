@@ -272,6 +272,7 @@
         <div class="view-header">
           <div class="view-heading">Log Penjualan</div>
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <button class="btn btn-danger btn-sm" id="btn-delete-selected" style="display:none">Hapus Terpilih (<span id="selected-count">0</span>)</button>
             <select class="history-filter-select" id="fin-month-filter">
               <option value="">Semua Bulan</option>
               <option value="1">Januari</option><option value="2">Februari</option>
@@ -300,6 +301,7 @@
             <table>
               <thead>
                 <tr>
+                  <th style="width:32px"><input type="checkbox" id="fin-select-all" title="Pilih semua"></th>
                   <th>Nama Produk</th>
                   <th>Harga Listing</th>
                   <th>Harga Aktual</th>
@@ -1286,9 +1288,33 @@
 
     var tbody = document.getElementById('finance-tbody');
     if (!logs.length) {
-      tbody.innerHTML = '<tr class="empty-row"><td colspan="5">Belum ada penjualan' + (selMonth || selYear ? ' di periode ini' : '') + '.</td></tr>';
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="6">Belum ada penjualan' + (selMonth || selYear ? ' di periode ini' : '') + '.</td></tr>';
       return;
     }
+
+    function updateDeleteBtn() {
+      var checked = tbody.querySelectorAll('input.fin-row-check:checked');
+      var btn = document.getElementById('btn-delete-selected');
+      document.getElementById('selected-count').textContent = checked.length;
+      btn.style.display = checked.length ? 'inline-flex' : 'none';
+    }
+
+    document.getElementById('fin-select-all').onchange = function() {
+      tbody.querySelectorAll('input.fin-row-check').forEach(function(cb) { cb.checked = this.checked; }, this);
+      updateDeleteBtn();
+    };
+
+    document.getElementById('btn-delete-selected').onclick = async function() {
+      var checked = Array.from(tbody.querySelectorAll('input.fin-row-check:checked'));
+      if (!checked.length) return;
+      if (!confirm('Hapus ' + checked.length + ' entri log penjualan ini?')) return;
+      var ids = checked.map(function(cb) { return cb.dataset.logId; });
+      var res = await _sb.from('sales_log').delete().in('id', ids);
+      if (res.error) { showToast('Gagal menghapus: ' + res.error.message, 'error'); return; }
+      showToast('Berhasil dihapus');
+      document.getElementById('fin-select-all').checked = false;
+      await loadFinanceData();
+    };
 
     function renderFinanceRows(logsArr) {
       tbody.innerHTML = logsArr.map(function(l) {
@@ -1296,6 +1322,7 @@
         var actualPrice = l.actual_price != null ? l.actual_price : l.product_price;
         var isNego = actualPrice !== l.product_price;
         return '<tr data-log-id="' + l.id + '">' +
+          '<td><input type="checkbox" class="fin-row-check" data-log-id="' + l.id + '"></td>' +
           '<td><div class="td-name">' + escHtml(l.product_name) + '</div></td>' +
           '<td class="td-price td-muted">' + formatRp(l.product_price) + '</td>' +
           '<td class="td-price">' +
@@ -1316,6 +1343,11 @@
           '</td>' +
         '</tr>';
       }).join('');
+
+      // bind checkbox change
+      tbody.querySelectorAll('input.fin-row-check').forEach(function(cb) {
+        cb.addEventListener('change', updateDeleteBtn);
+      });
 
       // bind edit/save/cancel events
       tbody.querySelectorAll('tr[data-log-id]').forEach(function(row) {
