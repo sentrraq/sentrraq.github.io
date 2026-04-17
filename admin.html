@@ -273,6 +273,7 @@
           <div class="view-heading">Log Penjualan</div>
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
             <button class="btn btn-danger btn-sm" id="btn-delete-selected" style="display:none">Hapus Terpilih (<span id="selected-count">0</span>)</button>
+            <button class="btn btn-danger btn-sm" id="btn-clear-all-log">Kosongkan Semua</button>
             <select class="history-filter-select" id="fin-month-filter">
               <option value="">Semua Bulan</option>
               <option value="1">Januari</option><option value="2">Februari</option>
@@ -1576,6 +1577,15 @@
     var count = finTbody.querySelectorAll('input.fin-row-check:checked').length;
     document.getElementById('selected-count').textContent = count;
     document.getElementById('btn-delete-selected').style.display = count ? 'inline-flex' : 'none';
+  });
+
+  document.getElementById('btn-clear-all-log').addEventListener('click', async function() {
+    if (!confirm('Kosongkan semua log penjualan? Tindakan tidak bisa dibatalkan.')) return;
+    var allLogs = (await _sb.from('sales_log').select('product_id')).data || [];
+    var pids = allLogs.map(function(l){ return l.product_id; }).filter(function(v,i,a){ return a.indexOf(v)===i; });
+    if (pids.length) await _sb.from('sales_log').delete().in('product_id', pids);
+    showToast('Log penjualan dikosongkan');
+    await loadFinanceData();
   });
 
   document.getElementById('btn-delete-selected').addEventListener('click', async function() {
