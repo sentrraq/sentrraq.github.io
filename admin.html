@@ -913,9 +913,9 @@
   async function deleteProduct(id) {
     if (!confirm('Hapus produk ini? Tindakan tidak dapat dibatalkan.')) return;
     var prod = allProducts.find(function(x){return x.id===id;});
+    await _sb.from('sales_log').delete().eq('product_id', id);
     var result = await _sb.from('products').delete().eq('id', id);
     if (result.error) { showToast('Gagal menghapus: ' + result.error.message, 'error'); return; }
-    await _sb.from('sales_log').delete().eq('product_id', id);
     if (prod) {
       var hr = await _sb.from('product_history').insert([{ product_id: id, product_name: prod.name, product_price: prod.price || 0, event_type: 'deleted', old_status: prod.status, new_status: null }]);
       if (hr.error) showToast('Gagal catat riwayat: ' + hr.error.message, 'error');
@@ -1581,9 +1581,8 @@
 
   document.getElementById('btn-clear-all-log').addEventListener('click', async function() {
     if (!confirm('Kosongkan semua log penjualan? Tindakan tidak bisa dibatalkan.')) return;
-    var allLogs = (await _sb.from('sales_log').select('product_id')).data || [];
-    var pids = allLogs.map(function(l){ return l.product_id; }).filter(function(v,i,a){ return a.indexOf(v)===i; });
-    if (pids.length) await _sb.from('sales_log').delete().in('product_id', pids);
+    var res = await _sb.from('sales_log').delete().not('id', 'is', null);
+    if (res.error) { showToast('Gagal: ' + res.error.message, 'error'); return; }
     showToast('Log penjualan dikosongkan');
     await loadFinanceData();
   });
