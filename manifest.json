@@ -1,0 +1,24 @@
+{
+  "name": "Sentraq — Premium Pre-Owned Electronics",
+  "short_name": "Sentraq",
+  "description": "MacBook, iPhone, iPad second berkualitas — dikurasi, diperiksa, bergaransi.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0071e3",
+  "orientation": "portrait-primary",
+  "categories": ["shopping"],
+  "lang": "id",
+  "icons": [
+    {
+      "src": "assets/images/logo-icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/images/logo-icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

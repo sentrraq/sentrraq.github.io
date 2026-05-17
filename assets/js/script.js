@@ -64,9 +64,18 @@ document.addEventListener('DOMContentLoaded', function () {
   initLightbox();
   initCart();
   initBackToTop();
+  initProductModal();
+  initFaq();
   updateWishlistBadge();
   loadProducts();
 });
+
+/* ===== PWA SERVICE WORKER ===== */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('/sw.js').catch(function () {});
+  });
+}
 
 /* ===== DARK MODE THEME ===== */
 function initTheme() {
@@ -119,6 +128,146 @@ function updateWishlistBadge() {
   var count = wishlist.length;
   badge.textContent = count > 99 ? '99+' : String(count);
   badge.style.display = count > 0 ? '' : 'none';
+}
+
+/* ===== PRODUCT DETAIL MODAL ===== */
+function initProductModal() {
+  var overlay = document.getElementById('product-modal-overlay');
+  var closeBtn = document.getElementById('product-modal-close');
+  if (overlay) overlay.addEventListener('click', closeProductModal);
+  if (closeBtn) closeBtn.addEventListener('click', closeProductModal);
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closeProductModal();
+  });
+}
+
+function openProductModal(p) {
+  var modal   = document.getElementById('product-modal');
+  var content = document.getElementById('product-modal-content');
+  if (!modal || !content) return;
+
+  var isSold   = p.status === 'sold'    || (!p.status && !p.available);
+  var isOnHold = p.status === 'on_hold';
+  var stock    = typeof p.stock === 'number' ? p.stock : (p.available ? 1 : 0);
+  var icon     = CATEGORY_ICONS[p.category] || CATEGORY_ICONS.default;
+  var catLabel = { macbook: 'MacBook', iphone: 'iPhone', ipad: 'iPad', laptop: 'Laptop' };
+
+  var mediaHTML;
+  if (p.images && p.images.length > 0) {
+    mediaHTML = '<div class="product-modal-media"><img src="' + escapeHtml(p.images[0]) + '" alt="' + escapeHtml(p.name) + '" loading="lazy"></div>';
+  } else {
+    mediaHTML = '<div class="product-modal-media"><div class="product-modal-media-placeholder">' + icon + '<span>' + escapeHtml(catLabel[p.category] || p.category) + '</span></div></div>';
+  }
+
+  var savingsHTML = '';
+  var origHTML    = '';
+  if (p.originalPrice && p.originalPrice > p.price) {
+    var pct = Math.round((1 - p.price / p.originalPrice) * 100);
+    origHTML    = '<span class="product-modal-original">' + formatPrice(p.originalPrice) + '</span>';
+    savingsHTML = '<span class="product-modal-savings">Hemat ' + pct + '%</span>';
+  }
+
+  var conditionHTML = p.condition
+    ? '<span class="card-condition card-condition--' + escapeHtml(p.condition.toLowerCase().replace(/\s+/g, '-')) + '">' + escapeHtml(p.condition) + '</span>'
+    : '';
+
+  var stockHTML;
+  if (isSold || stock <= 0) {
+    stockHTML = '<p class="card-stock card-stock--out">Stok habis</p>';
+  } else if (isOnHold) {
+    stockHTML = '<p class="card-stock card-stock--hold">Sedang ditahan</p>';
+  } else {
+    stockHTML = '<p class="card-stock card-stock--ok">Stok: ' + stock + ' unit tersedia</p>';
+  }
+
+  var cartBtnHTML;
+  if (isSold || stock <= 0) {
+    cartBtnHTML = '<button class="btn btn-primary btn-full" disabled>Terjual</button>';
+  } else if (isOnHold) {
+    cartBtnHTML = '<button class="btn btn-secondary btn-full" disabled>Sedang Ditahan</button>';
+  } else {
+    var inCart = !!cart[p.id];
+    cartBtnHTML = '<button class="btn btn-primary btn-full btn-modal-add-cart" data-id="' + escapeHtml(p.id) + '">' + (inCart ? 'Sudah di Keranjang' : 'Tambah ke Keranjang') + '</button>';
+  }
+
+  var specsLine = p.specs ? '\nSpesifikasi: ' + p.specs : '';
+  var descLine  = p.description ? '\nKondisi: ' + p.description : '';
+  var productLink = 'https://sentrraq.github.io/#product-' + encodeURIComponent(p.id);
+  var waText = encodeURIComponent('Halo Sentraq, saya tertarik dengan ' + p.name + ' harga ' + formatPrice(p.price) + '.' + specsLine + descLine + '\nLink produk: ' + productLink);
+  var waHTML = '<a class="btn btn-ghost btn-full" href="https://wa.me/' + WA_NUMBER + '?text=' + waText + '" target="whatsapp" rel="noopener noreferrer">' +
+    '<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>' +
+    'Pesan via WhatsApp</a>';
+
+  var descBlock = p.description ? '<div class="product-modal-desc">' + escapeHtml(p.description) + '</div>' : '';
+
+  content.innerHTML = mediaHTML +
+    '<div class="product-modal-body">' +
+      '<p class="product-modal-category">' + escapeHtml(catLabel[p.category] || p.category) + conditionHTML + '</p>' +
+      '<h3 class="product-modal-title">' + escapeHtml(p.name) + '</h3>' +
+      '<p class="product-modal-specs">' + escapeHtml(p.specs || '') + '</p>' +
+      descBlock +
+      '<div class="product-modal-price-row">' +
+        '<span class="product-modal-price">' + formatPrice(p.price) + '</span>' +
+        origHTML + savingsHTML +
+      '</div>' +
+      '<div class="product-modal-stock">' + stockHTML + '</div>' +
+      '<div class="product-modal-actions">' + cartBtnHTML + waHTML + '</div>' +
+    '</div>';
+
+  var addBtn = content.querySelector('.btn-modal-add-cart');
+  if (addBtn) {
+    addBtn.addEventListener('click', function () {
+      if (cart[p.id]) return;
+      flyToCart(addBtn, function () { addToCart(p); });
+      addBtn.textContent = 'Sudah di Keranjang';
+      addBtn.disabled = true;
+    });
+  }
+
+  modal.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeProductModal() {
+  var modal = document.getElementById('product-modal');
+  if (modal) modal.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+/* ===== FAQ ACCORDION ===== */
+function initFaq() {
+  document.querySelectorAll('.faq-item').forEach(function (item) {
+    var btn    = item.querySelector('.faq-question');
+    var answer = item.querySelector('.faq-answer');
+    if (!btn || !answer) return;
+    btn.addEventListener('click', function () {
+      var isOpen = item.classList.contains('open');
+      document.querySelectorAll('.faq-item.open').forEach(function (openItem) {
+        openItem.classList.remove('open');
+        var a = openItem.querySelector('.faq-answer');
+        if (a) a.style.maxHeight = '0';
+        var b = openItem.querySelector('.faq-question');
+        if (b) b.setAttribute('aria-expanded', 'false');
+      });
+      if (!isOpen) {
+        item.classList.add('open');
+        answer.style.maxHeight = answer.scrollHeight + 'px';
+        btn.setAttribute('aria-expanded', 'true');
+      }
+    });
+  });
+}
+
+/* ===== DETAIL BUTTONS ===== */
+function initDetailButtons() {
+  document.querySelectorAll('.btn-detail').forEach(function (btn) {
+    btn.addEventListener('click', function (e) {
+      e.preventDefault(); e.stopPropagation();
+      var id = btn.dataset.id;
+      var product = allProducts.find(function (p) { return p.id === id; });
+      if (product) openProductModal(product);
+    });
+  });
 }
 
 /* ===== HERO CYCLE WORD ===== */
@@ -563,6 +712,20 @@ function buildCard(p) {
     'Bagikan' +
   '</button>';
 
+  var savingsBadge = '';
+  var originalPriceHTML = '';
+  if (p.originalPrice && p.originalPrice > p.price) {
+    var savingsPct = Math.round((1 - p.price / p.originalPrice) * 100);
+    originalPriceHTML = '<span class="card-price-original">' + formatPrice(p.originalPrice) + '</span>';
+    savingsBadge = '<span class="card-savings-badge">Hemat ' + savingsPct + '%</span>';
+  }
+  var priceRowHTML = '<div class="card-price-row">' +
+    '<span class="card-price">' + formatPrice(p.price) + '</span>' +
+    originalPriceHTML + savingsBadge +
+  '</div>';
+
+  var detailBtn = '<button class="btn-detail" data-id="' + escapeHtml(p.id) + '" type="button">Lihat Detail &rarr;</button>';
+
   article.innerHTML = [
     mediaHTML,
     '<div class="card-body">',
@@ -570,9 +733,10 @@ function buildCard(p) {
       '<h3 class="card-title">' + safeName + '</h3>',
       '<p class="card-specs">' + safeSpecs + '</p>',
       safeDesc,
-      '<p class="card-price">' + formatPrice(p.price) + '</p>',
+      priceRowHTML,
       stockHTML,
       ctaBtn,
+      detailBtn,
       shareBtn,
     '</div>'
   ].join('');
@@ -602,6 +766,7 @@ function renderProducts(products) {
   initAddToCartButtons();
   initWishlistButtons();
   initShareButtons();
+  initDetailButtons();
 
   if (products.length === 0) updateEmptyState('all');
 
@@ -1063,6 +1228,19 @@ function initCart() {
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') closeCart();
   });
+
+  var cartEmptyCta = document.getElementById('cart-empty-cta');
+  if (cartEmptyCta) {
+    cartEmptyCta.addEventListener('click', function (e) {
+      e.preventDefault();
+      closeCart();
+      var products = document.getElementById('products');
+      if (products) {
+        var top = products.getBoundingClientRect().top + window.scrollY - 72;
+        window.scrollTo({ top: top, behavior: 'smooth' });
+      }
+    });
+  }
 }
 
 function toggleCart() {

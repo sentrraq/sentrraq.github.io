@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>404 — Halaman Tidak Ditemukan · Sentraq</title>
+  <link rel="icon" type="image/png" href="assets/images/logo-icon.png">
+  <link rel="stylesheet" href="assets/css/style.css?v=9">
+  <style>
+    .page-404 {
+      min-height: 100vh;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      text-align: center; padding: 48px 24px;
+      background: var(--bg);
+    }
+    .page-404-code {
+      font-size: 120px; font-weight: 800;
+      letter-spacing: -0.06em; line-height: 1;
+      color: var(--bg-3); margin-bottom: 0;
+      user-select: none;
+    }
+    .page-404-title {
+      font-size: 28px; font-weight: 700;
+      letter-spacing: -0.03em; color: var(--text);
+      margin: 12px 0 12px;
+    }
+    .page-404-sub {
+      font-size: 16px; color: var(--text-2);
+      line-height: 1.6; max-width: 360px;
+      margin: 0 auto 36px;
+    }
+    .page-404-actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+  </style>
+</head>
+<body>
+
+  <header class="navbar" role="banner">
+    <div class="navbar-inner">
+      <a class="navbar-wordmark" href="/" aria-label="Sentraq — Home">
+        <img src="assets/images/logo-full.png" alt="Sentraq" class="navbar-logo-img">
+      </a>
+    </div>
+  </header>
+
+  <main class="page-404" role="main">
+    <p class="page-404-code" aria-hidden="true">404</p>
+    <h1 class="page-404-title">Halaman tidak ditemukan.</h1>
+    <p class="page-404-sub">Sepertinya halaman yang kamu cari sudah dipindahkan, dihapus, atau tidak pernah ada.</p>
+    <div class="page-404-actions">
+      <a href="/" class="btn btn-primary">Kembali ke Beranda</a>
+      <a href="https://wa.me/6285716577307" class="btn btn-ghost" target="_blank" rel="noopener noreferrer">Hubungi Kami</a>
+    </div>
+  </main>
+
+  <script>
+    var theme = '';
+    try { theme = localStorage.getItem('sentraq_theme') || ''; } catch(e) {}
+    if (theme === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+  </script>
+</body>
+</html>
