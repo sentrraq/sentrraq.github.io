@@ -112,29 +112,62 @@ ul, ol { list-style: none; }
   transition: border-color 0.2s ease;
 }
 .navbar.scrolled { border-bottom-color: var(--border-light); }
+
+/* 3-column flex: logo | nav (centered) | actions */
 .navbar-inner {
-  display: flex; align-items: center; justify-content: center; gap: 28px;
-  height: 52px; padding: 0 48px;
-  width: 100%;
+  display: flex; align-items: center; justify-content: space-between;
+  height: 52px; padding: 0 48px; width: 100%;
 }
+
+/* LEFT */
 .navbar-wordmark {
   flex-shrink: 0; display: flex; align-items: center;
 }
 .navbar-logo-img {
-  height: 36px; width: auto; object-fit: contain; display: block;
+  height: 34px; width: auto; object-fit: contain; display: block;
 }
+
+/* CENTER */
 .navbar-links {
-  display: flex; align-items: center; gap: 28px;
+  flex: 1;
+  display: flex; align-items: center; justify-content: center; gap: 24px;
 }
 .navbar-links a {
   font-size: 13px; color: var(--text-2);
   transition: color 0.15s ease;
+  white-space: nowrap;
 }
 .navbar-links a:hover { color: var(--text); }
 .navbar-links a.nav-filter-active { color: var(--accent); font-weight: 600; }
+
+/* RIGHT */
 .navbar-actions {
-  display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+  flex-shrink: 0;
+  display: flex; align-items: center; gap: 2px;
 }
+
+/* Unified icon button base */
+.navbar-icon-btn {
+  position: relative;
+  display: flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px; border-radius: 50%;
+  background: none; border: none;
+  color: var(--text-2); cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.12s ease;
+  flex-shrink: 0;
+}
+.navbar-icon-btn:hover  { background: var(--bg-2); color: var(--text); }
+.navbar-icon-btn:active { transform: scale(0.9); }
+
+/* Divider between icons and CTA */
+.navbar-divider {
+  width: 1px; height: 18px;
+  background: var(--border);
+  margin: 0 10px; flex-shrink: 0;
+}
+
+/* CTA button — right-most */
+.navbar-cta { white-space: nowrap; }
 .hamburger {
   display: none; flex-direction: column; justify-content: center; align-items: center;
   gap: 5px; width: 44px; height: 44px;
@@ -950,21 +983,10 @@ ul, ol { list-style: none; }
 }
 
 /* ===== CART BUTTON (NAVBAR) ===== */
-.cart-btn {
-  position: relative;
-  display: flex; align-items: center; justify-content: center;
-  width: 40px; height: 40px; border-radius: 50%;
-  background: none; border: 1.5px solid var(--border);
-  color: var(--text); cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
-  flex-shrink: 0;
-}
-.cart-btn:hover { background: var(--bg-2); border-color: var(--border-light); }
-.cart-btn:active { transform: scale(0.93); }
-
+/* Base styles handled by .navbar-icon-btn; only badge is unique */
 .cart-badge {
-  position: absolute; top: -5px; right: -5px;
-  min-width: 18px; height: 18px;
+  position: absolute; top: -4px; right: -4px;
+  min-width: 17px; height: 17px;
   background: var(--accent); color: #fff;
   font-size: 10px; font-weight: 700;
   border-radius: 20px; padding: 0 4px;
@@ -1294,33 +1316,14 @@ ul, ol { list-style: none; }
 }
 
 /* ===== THEME TOGGLE BUTTON ===== */
-.theme-btn {
-  position: relative;
-  display: flex; align-items: center; justify-content: center;
-  width: 40px; height: 40px; border-radius: 50%;
-  background: none; border: 1.5px solid var(--border);
-  color: var(--text); cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
-  flex-shrink: 0;
-}
-.theme-btn:hover  { background: var(--bg-2); border-color: var(--border-light); }
-.theme-btn:active { transform: scale(0.93); }
+/* Base styles from .navbar-icon-btn; no extra styles needed */
 
 /* ===== WISHLIST NAV BUTTON ===== */
-.wishlist-nav-btn {
-  position: relative;
-  display: flex; align-items: center; justify-content: center;
-  width: 40px; height: 40px; border-radius: 50%;
-  background: none; border: 1.5px solid var(--border);
-  color: var(--text); cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
-  flex-shrink: 0;
-}
-.wishlist-nav-btn:hover  { background: var(--bg-2); border-color: var(--border-light); color: #ff3b30; }
-.wishlist-nav-btn:active { transform: scale(0.93); }
+/* Base styles from .navbar-icon-btn; only badge and hover color are unique */
+.wishlist-nav-btn:hover { color: #ff3b30; }
 .wishlist-nav-badge {
-  position: absolute; top: -5px; right: -5px;
-  min-width: 18px; height: 18px;
+  position: absolute; top: -4px; right: -4px;
+  min-width: 17px; height: 17px;
   background: #ff3b30; color: #fff;
   font-size: 10px; font-weight: 700;
   border-radius: 20px; padding: 0 4px;
