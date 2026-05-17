@@ -66,6 +66,8 @@ document.addEventListener('DOMContentLoaded', function () {
   initBackToTop();
   initProductModal();
   initFaq();
+  initAuth();
+  initWishlistPanel();
   updateWishlistBadge();
   loadProducts();
 });
@@ -736,8 +738,10 @@ function buildCard(p) {
       priceRowHTML,
       stockHTML,
       ctaBtn,
-      detailBtn,
-      shareBtn,
+      '<div class="card-actions-row">',
+        detailBtn,
+        shareBtn,
+      '</div>',
     '</div>'
   ].join('');
 
@@ -1082,10 +1086,11 @@ function saveWishlist() {
   try { localStorage.setItem('sentraq_wishlist', JSON.stringify(wishlist)); } catch(e) {}
 }
 
-function toggleWishlist(id) {
+async function toggleWishlist(id) {
   var idx = wishlist.indexOf(id);
-  if (idx === -1) wishlist.push(id);
-  else wishlist.splice(idx, 1);
+  var removing = idx !== -1;
+  if (removing) wishlist.splice(idx, 1);
+  else wishlist.push(id);
   saveWishlist();
 
   document.querySelectorAll('.wishlist-btn[data-id="' + id + '"]').forEach(function (btn) {
@@ -1098,7 +1103,19 @@ function toggleWishlist(id) {
   });
 
   updateWishlistBadge();
-  showToast(wishlist.indexOf(id) !== -1 ? '❤️ Disimpan ke wishlist' : 'Dihapus dari wishlist');
+  renderWishlistPanel();
+  showToast(!removing ? '❤️ Disimpan ke wishlist' : 'Dihapus dari wishlist');
+
+  // Sync to cloud if logged in
+  if (currentUser && window._sb) {
+    try {
+      if (removing) {
+        await window._sb.from('user_wishlists').delete().eq('user_id', currentUser.id).eq('product_id', id);
+      } else {
+        await window._sb.from('user_wishlists').upsert({ user_id: currentUser.id, product_id: id }, { onConflict: 'user_id,product_id' });
+      }
+    } catch(e) {}
+  }
 }
 
 function initWishlistButtons() {
@@ -1393,6 +1410,255 @@ function buildCartWALink() {
   lines.push('\nMohon konfirmasi ketersediaan. Terima kasih!');
 
   return 'https://wa.me/' + WA_NUMBER + '?text=' + encodeURIComponent(lines.join('\n'));
+}
+
+/* ===== AUTH ===== */
+var currentUser = null;
+
+function initAuth() {
+  window.addEventListener('sentraq:authchange', function(e) {
+    currentUser = e.detail.user;
+    updateAuthUI();
+  });
+
+  var loginBtn = document.getElementById('login-btn');
+  var avatarBtn = document.getElementById('navbar-user-avatar');
+  if (loginBtn)  loginBtn.addEventListener('click', openAuthModal);
+  if (avatarBtn) avatarBtn.addEventListener('click', openAuthModal);
+
+  var authClose   = document.getElementById('auth-modal-close');
+  var authOverlay = document.getElementById('auth-modal-overlay');
+  if (authClose)   authClose.addEventListener('click', closeAuthModal);
+  if (authOverlay) authOverlay.addEventListener('click', closeAuthModal);
+
+  // Tab switching
+  document.querySelectorAll('.auth-tab').forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      document.querySelectorAll('.auth-tab').forEach(function(t) { t.classList.remove('active'); });
+      tab.classList.add('active');
+      var target = tab.dataset.tab;
+      document.getElementById('auth-form-login').style.display    = target === 'login'    ? '' : 'none';
+      document.getElementById('auth-form-register').style.display = target === 'register' ? '' : 'none';
+    });
+  });
+
+  // Login submit
+  var loginForm = document.getElementById('auth-form-login');
+  if (loginForm) {
+    loginForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      var email    = loginForm.querySelector('[name="email"]').value.trim();
+      var password = loginForm.querySelector('[name="password"]').value;
+      handleLogin(email, password, loginForm);
+    });
+  }
+
+  // Register submit
+  var regForm = document.getElementById('auth-form-register');
+  if (regForm) {
+    regForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      var name     = regForm.querySelector('[name="name"]').value.trim();
+      var email    = regForm.querySelector('[name="email"]').value.trim();
+      var password = regForm.querySelector('[name="password"]').value;
+      handleRegister(name, email, password, regForm);
+    });
+  }
+
+  // Logout
+  var logoutBtn = document.getElementById('logout-btn');
+  if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
+}
+
+function updateAuthUI() {
+  var loginBtn  = document.getElementById('login-btn');
+  var avatarBtn = document.getElementById('navbar-user-avatar');
+  var initial   = document.getElementById('navbar-user-initial');
+  var tabsWrap  = document.getElementById('auth-tabs-wrap');
+  var loggedIn  = document.getElementById('auth-loggedin');
+  var authName  = document.getElementById('auth-username');
+  var authEmail = document.getElementById('auth-useremail');
+  var avatarBig = document.getElementById('auth-avatar-big');
+
+  if (currentUser) {
+    var displayName = (currentUser.user_metadata && currentUser.user_metadata.name) || '';
+    var email       = currentUser.email || '';
+    var letter      = displayName ? displayName.charAt(0).toUpperCase() : (email ? email.charAt(0).toUpperCase() : 'U');
+
+    if (loginBtn)  loginBtn.style.display  = 'none';
+    if (avatarBtn) { avatarBtn.style.display = ''; if (initial) initial.textContent = letter; }
+    if (tabsWrap)  tabsWrap.style.display  = 'none';
+    if (loggedIn)  loggedIn.style.display  = '';
+    if (authName)  authName.textContent    = displayName || email.split('@')[0];
+    if (authEmail) authEmail.textContent   = email;
+    if (avatarBig) avatarBig.textContent   = letter;
+
+    syncWishlistToCloud();
+  } else {
+    if (loginBtn)  loginBtn.style.display  = '';
+    if (avatarBtn) avatarBtn.style.display = 'none';
+    if (tabsWrap)  tabsWrap.style.display  = '';
+    if (loggedIn)  loggedIn.style.display  = 'none';
+  }
+}
+
+async function handleLogin(email, password, form) {
+  var sb  = window._sb;
+  if (!sb) return;
+  var btn = form.querySelector('[type="submit"]');
+  var err = form.querySelector('.auth-error');
+  if (btn) { btn.disabled = true; btn.textContent = 'Memproses...'; }
+  if (err) err.style.display = 'none';
+  try {
+    var res = await sb.auth.signInWithPassword({ email: email, password: password });
+    if (res.error) throw res.error;
+    closeAuthModal();
+    showToast('Selamat datang kembali!');
+  } catch(e) {
+    if (err) { err.textContent = 'Email atau password salah.'; err.style.display = ''; }
+  }
+  if (btn) { btn.disabled = false; btn.textContent = 'Masuk'; }
+}
+
+async function handleRegister(name, email, password, form) {
+  var sb  = window._sb;
+  if (!sb) return;
+  var btn = form.querySelector('[type="submit"]');
+  var err = form.querySelector('.auth-error');
+  if (btn) { btn.disabled = true; btn.textContent = 'Memproses...'; }
+  if (err) err.style.display = 'none';
+  try {
+    var res = await sb.auth.signUp({ email: email, password: password, options: { data: { name: name } } });
+    if (res.error) throw res.error;
+    closeAuthModal();
+    showToast('Akun berhasil dibuat! Cek email untuk konfirmasi.');
+  } catch(e) {
+    if (err) { err.textContent = (e && e.message) || 'Gagal membuat akun.'; err.style.display = ''; }
+  }
+  if (btn) { btn.disabled = false; btn.textContent = 'Buat Akun'; }
+}
+
+async function handleLogout() {
+  var sb = window._sb;
+  if (sb) await sb.auth.signOut();
+  closeAuthModal();
+  showToast('Berhasil keluar.');
+}
+
+function openAuthModal() {
+  var modal = document.getElementById('auth-modal');
+  if (modal) { modal.classList.add('open'); document.body.style.overflow = 'hidden'; }
+}
+
+function closeAuthModal() {
+  var modal = document.getElementById('auth-modal');
+  if (modal) { modal.classList.remove('open'); document.body.style.overflow = ''; }
+}
+
+async function syncWishlistToCloud() {
+  var sb = window._sb;
+  if (!sb || !currentUser) return;
+  try {
+    if (wishlist.length) {
+      var rows = wishlist.map(function(id) { return { user_id: currentUser.id, product_id: id }; });
+      await sb.from('user_wishlists').upsert(rows, { onConflict: 'user_id,product_id' });
+    }
+    var res = await sb.from('user_wishlists').select('product_id').eq('user_id', currentUser.id);
+    if (res.data) {
+      res.data.forEach(function(row) {
+        if (wishlist.indexOf(row.product_id) === -1) wishlist.push(row.product_id);
+      });
+      saveWishlist();
+      updateWishlistBadge();
+      renderWishlistPanel();
+    }
+  } catch(e) {}
+}
+
+/* ===== WISHLIST PANEL ===== */
+function initWishlistPanel() {
+  var navBtn   = document.getElementById('wishlist-nav-btn');
+  var closeBtn = document.getElementById('wishlist-close');
+
+  if (navBtn) navBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    var panel = document.getElementById('wishlist-panel');
+    if (panel && panel.classList.contains('open')) closeWishlistPanel();
+    else openWishlistPanel();
+  });
+
+  if (closeBtn) closeBtn.addEventListener('click', closeWishlistPanel);
+
+  document.addEventListener('click', function(e) {
+    var panel  = document.getElementById('wishlist-panel');
+    var navBtn = document.getElementById('wishlist-nav-btn');
+    if (panel && panel.classList.contains('open') &&
+        !panel.contains(e.target) && e.target !== navBtn && !navBtn.contains(e.target)) {
+      closeWishlistPanel();
+    }
+  });
+}
+
+function openWishlistPanel() {
+  closeCart();
+  renderWishlistPanel();
+  var panel = document.getElementById('wishlist-panel');
+  if (panel) panel.classList.add('open');
+}
+
+function closeWishlistPanel() {
+  var panel = document.getElementById('wishlist-panel');
+  if (panel) panel.classList.remove('open');
+}
+
+function renderWishlistPanel() {
+  var container = document.getElementById('wishlist-items');
+  if (!container) return;
+
+  if (!wishlist.length) {
+    container.innerHTML =
+      '<div class="cart-empty">' +
+        '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">' +
+          '<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>' +
+        '</svg>' +
+        '<p>Wishlist masih kosong</p>' +
+      '</div>';
+    return;
+  }
+
+  var html = wishlist.map(function(id) {
+    var p = allProducts.find(function(x) { return x.id === id; });
+    if (!p) return '';
+    var imgHTML = (p.images && p.images.length)
+      ? '<img src="' + escapeHtml(p.images[0]) + '" alt="' + escapeHtml(p.name) + '" loading="lazy">'
+      : (CATEGORY_ICONS[p.category] || CATEGORY_ICONS.default);
+    return '<div class="wishlist-item">' +
+      '<div class="wishlist-item-img">' + imgHTML + '</div>' +
+      '<div class="cart-item-info">' +
+        '<p class="cart-item-name">' + escapeHtml(p.name) + '</p>' +
+        '<p class="cart-item-price">' + formatPrice(p.price) + '</p>' +
+      '</div>' +
+      '<div class="wishlist-item-actions">' +
+        '<button class="btn btn-primary btn-sm wishlist-item-detail" data-id="' + escapeHtml(id) + '" style="font-size:11px;padding:5px 10px;">Detail</button>' +
+        '<button class="wishlist-item-remove" data-id="' + escapeHtml(id) + '" aria-label="Hapus dari wishlist">&times;</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+
+  container.innerHTML = html;
+
+  container.querySelectorAll('.wishlist-item-detail').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var p = allProducts.find(function(x) { return x.id === btn.dataset.id; });
+      if (p) { closeWishlistPanel(); openProductModal(p); }
+    });
+  });
+
+  container.querySelectorAll('.wishlist-item-remove').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      toggleWishlist(btn.dataset.id);
+    });
+  });
 }
 
 /* ===== LAZY IMAGES ===== */
