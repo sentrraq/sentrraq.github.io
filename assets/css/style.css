@@ -427,7 +427,11 @@ ul, ol { list-style: none; }
   background: #e8e8ed;
   border-radius: var(--r-pill, 999px);
   padding: 4px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
 }
+.filter-bar::-webkit-scrollbar { display: none; }
 
 .filter-pill {
   flex: 1;
@@ -918,7 +922,9 @@ ul, ol { list-style: none; }
   }
   .navbar-links   { display: none; }
   .navbar-actions { display: flex; }
-  .hamburger      { display: none; }
+  .hamburger      { display: flex; }
+  .navbar-divider { display: none; }
+  .navbar-cta     { display: none; }
   .filter-bar     { display: flex; }
 
   .hero          { padding: 40px 32px 100px; min-height: calc(100svh - 52px); justify-content: center; }
