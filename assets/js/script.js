@@ -43,6 +43,9 @@ var CATEGORY_ICONS = {
 var allProducts = [];
 var activeFilter = 'all';
 
+/* ===== CART STATE ===== */
+var cart = {}; // { productId: { product, qty } }
+
 document.addEventListener('DOMContentLoaded', function () {
   setFooterYear();
   initNavbar();
@@ -50,6 +53,7 @@ document.addEventListener('DOMContentLoaded', function () {
   initHeroCycle();
   initEarlyAnimations();
   initLightbox();
+  initCart();
   loadProducts();
 });
 
@@ -451,13 +455,25 @@ function buildCard(p) {
     var lastDiv = mediaHTML.lastIndexOf('</div>');
     mediaHTML = mediaHTML.slice(0, lastDiv) + '<div class="card-sold-overlay"><span>Terjual</span></div>' + mediaHTML.slice(lastDiv);
   }
-  var ctaBtn;
+  var stock = (typeof p.stock === 'number') ? p.stock : (p.available ? 1 : 0);
+  var stockHTML = '';
   if (isSold) {
+    stockHTML = '<p class="card-stock card-stock--out">Stok habis</p>';
+  } else if (isOnHold) {
+    stockHTML = '<p class="card-stock card-stock--hold">Sedang ditahan</p>';
+  } else if (stock <= 0) {
+    stockHTML = '<p class="card-stock card-stock--out">Stok habis</p>';
+  } else {
+    stockHTML = '<p class="card-stock card-stock--ok">Stok: ' + stock + ' unit tersedia</p>';
+  }
+
+  var ctaBtn;
+  if (isSold || stock <= 0) {
     ctaBtn = '<button class="btn btn-primary btn-full btn-sm" disabled>Terjual</button>';
   } else if (isOnHold) {
     ctaBtn = '<button class="btn btn-secondary btn-full btn-sm" disabled>Sedang Ditahan</button>';
   } else {
-    ctaBtn = '<a href="https://wa.me/' + WA_NUMBER + '?text=' + waText + '" class="btn btn-primary btn-full btn-sm" target="_blank" rel="noopener noreferrer">Hubungi Kami</a>';
+    ctaBtn = '<button class="btn btn-primary btn-full btn-sm btn-add-cart" data-id="' + escapeHtml(p.id) + '" type="button">Tambah ke Keranjang</button>';
   }
   article.innerHTML = [
     mediaHTML,
@@ -467,6 +483,7 @@ function buildCard(p) {
       '<p class="card-specs">' + safeSpecs + '</p>',
       safeDesc,
       '<p class="card-price">' + formatPrice(p.price) + '</p>',
+      stockHTML,
       ctaBtn,
     '</div>'
   ].join('');
@@ -493,6 +510,7 @@ function renderProducts(products) {
   });
 
   initSliders();
+  initAddToCartButtons();
 
   if (products.length === 0) updateEmptyState('all');
 
@@ -756,6 +774,195 @@ function initLightbox() {
   }, { passive: true });
 
   window._openLightbox = openLightbox;
+}
+
+/* ===== ADD TO CART BUTTONS ===== */
+function initAddToCartButtons() {
+  document.querySelectorAll('.btn-add-cart').forEach(function (btn) {
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      var id = btn.dataset.id;
+      var product = allProducts.find(function (p) { return p.id === id; });
+      if (!product) return;
+      addToCart(product);
+
+      btn.textContent = 'Ditambahkan!';
+      btn.disabled = true;
+      setTimeout(function () {
+        var inCart = cart[id] ? true : false;
+        btn.textContent = inCart ? 'Sudah di Keranjang' : 'Tambah ke Keranjang';
+        btn.disabled = inCart;
+      }, 1200);
+    });
+  });
+}
+
+/* ===== CART FUNCTIONS ===== */
+function initCart() {
+  var cartBtn   = document.getElementById('cart-btn');
+  var cartClose = document.getElementById('cart-close');
+  var overlay   = document.getElementById('cart-overlay');
+
+  if (cartBtn)   cartBtn.addEventListener('click', openCart);
+  if (cartClose) cartClose.addEventListener('click', closeCart);
+  if (overlay)   overlay.addEventListener('click', closeCart);
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closeCart();
+  });
+}
+
+function openCart() {
+  var drawer  = document.getElementById('cart-drawer');
+  var overlay = document.getElementById('cart-overlay');
+  if (drawer)  drawer.classList.add('open');
+  if (overlay) overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeCart() {
+  var drawer  = document.getElementById('cart-drawer');
+  var overlay = document.getElementById('cart-overlay');
+  if (drawer)  drawer.classList.remove('open');
+  if (overlay) overlay.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function addToCart(product) {
+  if (cart[product.id]) {
+    cart[product.id].qty = Math.min(cart[product.id].qty + 1, product.stock || 1);
+  } else {
+    cart[product.id] = { product: product, qty: 1 };
+  }
+  updateCartUI();
+  openCart();
+}
+
+function removeFromCart(productId) {
+  delete cart[productId];
+  updateCartUI();
+  refreshAddToCartButtons();
+}
+
+function updateCartUI() {
+  var ids = Object.keys(cart);
+  var totalQty = ids.reduce(function (sum, id) { return sum + cart[id].qty; }, 0);
+  var totalPrice = ids.reduce(function (sum, id) { return sum + cart[id].product.price * cart[id].qty; }, 0);
+
+  /* Update badge */
+  var badge = document.getElementById('cart-count');
+  if (badge) {
+    if (totalQty > 0) {
+      badge.style.display = '';
+      badge.textContent = totalQty > 99 ? '99+' : String(totalQty);
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+
+  /* Update total price */
+  var totalEl = document.getElementById('cart-total-price');
+  if (totalEl) totalEl.textContent = formatPrice(totalPrice);
+
+  /* Show/hide empty state and footer */
+  var emptyEl  = document.getElementById('cart-empty');
+  var footerEl = document.getElementById('cart-footer');
+  if (emptyEl)  emptyEl.style.display  = ids.length === 0 ? '' : 'none';
+  if (footerEl) footerEl.style.display = ids.length === 0 ? 'none' : '';
+
+  /* Render cart items */
+  renderCartItems();
+
+  /* Update WA button href */
+  var waBtn = document.getElementById('cart-wa-btn');
+  if (waBtn) waBtn.href = buildCartWALink();
+}
+
+function renderCartItems() {
+  var container = document.getElementById('cart-items');
+  if (!container) return;
+
+  var emptyEl = document.getElementById('cart-empty');
+
+  /* Remove existing item rows */
+  container.querySelectorAll('.cart-item').forEach(function (el) { el.remove(); });
+
+  Object.keys(cart).forEach(function (id) {
+    var entry = cart[id];
+    var p = entry.product;
+    var item = document.createElement('div');
+    item.className = 'cart-item';
+    item.innerHTML =
+      '<div class="cart-item-info">' +
+        '<p class="cart-item-name">' + escapeHtml(p.name) + '</p>' +
+        '<p class="cart-item-specs">' + escapeHtml(p.specs || '') + '</p>' +
+        '<p class="cart-item-price">' + formatPrice(p.price * entry.qty) + '</p>' +
+      '</div>' +
+      '<div class="cart-item-actions">' +
+        '<div class="cart-qty">' +
+          '<button class="cart-qty-btn" data-action="dec" data-id="' + escapeHtml(id) + '" aria-label="Kurangi">&#8722;</button>' +
+          '<span class="cart-qty-num">' + entry.qty + '</span>' +
+          '<button class="cart-qty-btn" data-action="inc" data-id="' + escapeHtml(id) + '" aria-label="Tambah">&#43;</button>' +
+        '</div>' +
+        '<button class="cart-remove-btn" data-id="' + escapeHtml(id) + '" aria-label="Hapus produk">' +
+          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>' +
+        '</button>' +
+      '</div>';
+
+    item.querySelector('.cart-remove-btn').addEventListener('click', function () {
+      removeFromCart(id);
+    });
+
+    var decBtn = item.querySelector('[data-action="dec"]');
+    var incBtn = item.querySelector('[data-action="inc"]');
+    if (decBtn) decBtn.addEventListener('click', function () {
+      if (cart[id]) {
+        cart[id].qty--;
+        if (cart[id].qty <= 0) removeFromCart(id);
+        else updateCartUI();
+      }
+    });
+    if (incBtn) incBtn.addEventListener('click', function () {
+      if (cart[id]) {
+        var maxStock = cart[id].product.stock || 1;
+        cart[id].qty = Math.min(cart[id].qty + 1, maxStock);
+        updateCartUI();
+      }
+    });
+
+    if (emptyEl) container.insertBefore(item, emptyEl);
+    else container.appendChild(item);
+  });
+}
+
+function refreshAddToCartButtons() {
+  document.querySelectorAll('.btn-add-cart').forEach(function (btn) {
+    var id = btn.dataset.id;
+    var inCart = !!cart[id];
+    btn.textContent = inCart ? 'Sudah di Keranjang' : 'Tambah ke Keranjang';
+    btn.disabled = inCart;
+  });
+}
+
+function buildCartWALink() {
+  var ids = Object.keys(cart);
+  if (!ids.length) return 'https://wa.me/' + WA_NUMBER;
+
+  var lines = ['Halo Sentraq, saya ingin memesan:\n'];
+  ids.forEach(function (id, i) {
+    var entry = cart[id];
+    var p = entry.product;
+    lines.push((i + 1) + '. ' + p.name + ' — ' + formatPrice(p.price) +
+      (entry.qty > 1 ? ' (×' + entry.qty + ')' : '') +
+      (p.specs ? '\n   Spesifikasi: ' + p.specs : ''));
+  });
+
+  var total = ids.reduce(function (s, id) { return s + cart[id].product.price * cart[id].qty; }, 0);
+  lines.push('\nTotal: ' + formatPrice(total));
+  lines.push('\nMohon konfirmasi ketersediaan. Terima kasih!');
+
+  return 'https://wa.me/' + WA_NUMBER + '?text=' + encodeURIComponent(lines.join('\n'));
 }
 
 /* ===== LAZY IMAGES ===== */
