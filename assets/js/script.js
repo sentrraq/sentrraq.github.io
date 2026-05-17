@@ -785,17 +785,50 @@ function initAddToCartButtons() {
       var id = btn.dataset.id;
       var product = allProducts.find(function (p) { return p.id === id; });
       if (!product) return;
-      addToCart(product);
+
+      flyToCart(btn, function () {
+        addToCart(product);
+      });
 
       btn.textContent = 'Ditambahkan!';
       btn.disabled = true;
       setTimeout(function () {
-        var inCart = cart[id] ? true : false;
-        btn.textContent = inCart ? 'Sudah di Keranjang' : 'Tambah ke Keranjang';
-        btn.disabled = inCart;
-      }, 1200);
+        btn.textContent = cart[id] ? 'Sudah di Keranjang' : 'Tambah ke Keranjang';
+        btn.disabled = !!cart[id];
+      }, 900);
     });
   });
+}
+
+function flyToCart(sourceEl, onComplete) {
+  var cartBtn = document.getElementById('cart-btn');
+  if (!cartBtn || !sourceEl) { if (onComplete) onComplete(); return; }
+
+  var srcRect  = sourceEl.getBoundingClientRect();
+  var destRect = cartBtn.getBoundingClientRect();
+
+  var dot = document.createElement('div');
+  dot.className = 'fly-dot';
+  dot.style.left = (srcRect.left + srcRect.width / 2 - 8) + 'px';
+  dot.style.top  = (srcRect.top  + srcRect.height / 2 - 8) + 'px';
+  document.body.appendChild(dot);
+
+  var dx = (destRect.left + destRect.width / 2 - 8) - (srcRect.left + srcRect.width / 2 - 8);
+  var dy = (destRect.top  + destRect.height / 2 - 8) - (srcRect.top  + srcRect.height / 2 - 8);
+
+  dot.style.setProperty('--fly-x', dx + 'px');
+  dot.style.setProperty('--fly-y', dy + 'px');
+  dot.classList.add('fly-dot--animate');
+
+  dot.addEventListener('animationend', function () {
+    dot.remove();
+    cartBtn.classList.add('cart-btn--pop');
+    cartBtn.addEventListener('animationend', function handler() {
+      cartBtn.classList.remove('cart-btn--pop');
+      cartBtn.removeEventListener('animationend', handler);
+    });
+    if (onComplete) onComplete();
+  }, { once: true });
 }
 
 /* ===== CART FUNCTIONS ===== */
@@ -836,7 +869,6 @@ function addToCart(product) {
     cart[product.id] = { product: product, qty: 1 };
   }
   updateCartUI();
-  openCart();
 }
 
 function removeFromCart(productId) {

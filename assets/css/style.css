@@ -1322,6 +1322,35 @@ ul, ol { list-style: none; }
 .card-stock--hold { color: #ff9f0a; }
 .card-stock--hold::before { background: #ff9f0a; }
 
+/* ===== FLY-TO-CART ANIMATION ===== */
+.fly-dot {
+  position: fixed;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 1;
+}
+.fly-dot--animate {
+  animation: flyToCart 0.65s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+@keyframes flyToCart {
+  0%   { transform: translate(0, 0) scale(1);    opacity: 1; }
+  60%  { opacity: 1; }
+  100% { transform: translate(var(--fly-x), var(--fly-y)) scale(0.3); opacity: 0; }
+}
+
+.cart-btn--pop {
+  animation: cartPop 0.35s cubic-bezier(0.36, 0.07, 0.19, 0.97) forwards;
+}
+@keyframes cartPop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.28); }
+  70%  { transform: scale(0.9); }
+  100% { transform: scale(1); }
+}
+
 /* ===== CART RESPONSIVE ===== */
 @media (max-width: 479px) {
   .cart-drawer { width: 100vw; }
