@@ -10,6 +10,8 @@
       "images": [],
       "available": true,
       "stock": 1,
+      "badge": "hot",
+      "condition": "Grade A",
       "whatsapp": "Halo Sentraq, saya tertarik dengan MacBook Pro 2020 i5 16GB 512GB harga Rp 7.500.000"
     },
     {
@@ -22,6 +24,8 @@
       "images": [],
       "available": true,
       "stock": 1,
+      "badge": null,
+      "condition": "Grade A",
       "whatsapp": "Halo Sentraq, saya tertarik dengan MacBook Pro 2018 Touchbar Silver 16GB 256GB harga Rp 6.800.000"
     },
     {
@@ -34,6 +38,8 @@
       "images": [],
       "available": true,
       "stock": 1,
+      "badge": "new",
+      "condition": "Grade A",
       "whatsapp": "Halo Sentraq, saya tertarik dengan HP OMEN Gaming Laptop RTX 3060 harga Rp 15.500.000"
     },
     {
@@ -48,6 +54,8 @@
       ],
       "available": true,
       "stock": 1,
+      "badge": "new",
+      "condition": "Grade A",
       "whatsapp": "masih ga kak?"
     }
   ]

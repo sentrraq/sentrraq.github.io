@@ -42,14 +42,22 @@ var CATEGORY_ICONS = {
 
 var allProducts = [];
 var activeFilter = 'all';
+var searchQuery  = '';
+var sortOrder    = 'default';
 
 /* ===== CART STATE ===== */
 var cart = {}; // { productId: { product, qty } }
+
+/* ===== WISHLIST STATE ===== */
+var wishlist = [];
+try { wishlist = JSON.parse(localStorage.getItem('sentraq_wishlist') || '[]'); } catch(e) { wishlist = []; }
 
 document.addEventListener('DOMContentLoaded', function () {
   setFooterYear();
   initNavbar();
   initFilterBar();
+  initSearch();
+  initSort();
   initHeroCycle();
   initEarlyAnimations();
   initLightbox();
@@ -450,11 +458,26 @@ function buildCard(p) {
   article.className = 'product-card';
   article.id = 'product-' + p.id;
   article.dataset.category = p.category;
+  article.dataset.price = p.price;
+  article.dataset.name  = (p.name || '').toLowerCase();
+  article.dataset.specs = (p.specs || '').toLowerCase();
   article.setAttribute('aria-label', safeName);
-  if (isSold) {
-    var lastDiv = mediaHTML.lastIndexOf('</div>');
-    mediaHTML = mediaHTML.slice(0, lastDiv) + '<div class="card-sold-overlay"><span>Terjual</span></div>' + mediaHTML.slice(lastDiv);
-  }
+  /* Badge BARU / HOT on image */
+  var badgeOverlay = '';
+  if (p.badge === 'new') badgeOverlay = '<span class="card-label card-label--new">BARU</span>';
+  else if (p.badge === 'hot') badgeOverlay = '<span class="card-label card-label--hot">🔥 HOT</span>';
+
+  /* Wishlist button on image */
+  var isWishlisted = wishlist.indexOf(p.id) !== -1;
+  var wishlistBtn  = '<button class="wishlist-btn' + (isWishlisted ? ' wishlisted' : '') + '" data-id="' + escapeHtml(p.id) + '" aria-label="Simpan produk">' +
+    '<svg width="16" height="16" viewBox="0 0 24 24" fill="' + (isWishlisted ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>' +
+  '</button>';
+
+  /* Inject overlays into mediaHTML */
+  var lastDiv = mediaHTML.lastIndexOf('</div>');
+  var overlays = badgeOverlay + wishlistBtn;
+  if (isSold) overlays += '<div class="card-sold-overlay"><span>Terjual</span></div>';
+  mediaHTML = mediaHTML.slice(0, lastDiv) + overlays + mediaHTML.slice(lastDiv);
   var stock = (typeof p.stock === 'number') ? p.stock : (p.available ? 1 : 0);
   var stockHTML = '';
   if (isSold) {
@@ -475,16 +498,26 @@ function buildCard(p) {
   } else {
     ctaBtn = '<button class="btn btn-primary btn-full btn-sm btn-add-cart" data-id="' + escapeHtml(p.id) + '" type="button">Tambah ke Keranjang</button>';
   }
+  var conditionHTML = p.condition
+    ? '<span class="card-condition card-condition--' + escapeHtml(p.condition.toLowerCase().replace(/\s+/g,'-')) + '">' + escapeHtml(p.condition) + '</span>'
+    : '';
+
+  var shareBtn = '<button class="share-btn" data-id="' + escapeHtml(p.id) + '" aria-label="Bagikan produk">' +
+    '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>' +
+    'Bagikan' +
+  '</button>';
+
   article.innerHTML = [
     mediaHTML,
     '<div class="card-body">',
-      '<p class="card-category">' + safeCat + badge + '</p>',
+      '<p class="card-category">' + safeCat + badge + conditionHTML + '</p>',
       '<h3 class="card-title">' + safeName + '</h3>',
       '<p class="card-specs">' + safeSpecs + '</p>',
       safeDesc,
       '<p class="card-price">' + formatPrice(p.price) + '</p>',
       stockHTML,
       ctaBtn,
+      shareBtn,
     '</div>'
   ].join('');
 
@@ -511,6 +544,8 @@ function renderProducts(products) {
 
   initSliders();
   initAddToCartButtons();
+  initWishlistButtons();
+  initShareButtons();
 
   if (products.length === 0) updateEmptyState('all');
 
@@ -573,57 +608,66 @@ function updateEmptyState(filter) {
 
 function applyFilter(filter) {
   activeFilter = filter;
-  var cards = document.querySelectorAll('#product-grid .product-card');
 
-  // Update active state on navbar filter links
   document.querySelectorAll('[data-filter-nav]').forEach(function (link) {
-    var isActive = link.dataset.filterNav === filter;
-    link.classList.toggle('nav-filter-active', isActive);
+    link.classList.toggle('nav-filter-active', link.dataset.filterNav === filter);
   });
 
-  // If no cards at all, just show empty state
-  if (!cards.length) {
-    updateEmptyState(filter);
-    return;
-  }
+  applyVisibility();
+}
 
-  // Check reduced motion preference
+function applyVisibility() {
+  var grid  = document.getElementById('product-grid');
+  var cards = Array.from(document.querySelectorAll('#product-grid .product-card'));
+  if (!cards.length) { updateEmptyState(activeFilter); return; }
+
+  var q = searchQuery.trim().toLowerCase();
+
+  /* Sort cards in DOM */
+  if (sortOrder === 'price-asc') {
+    cards.sort(function(a, b) { return Number(a.dataset.price) - Number(b.dataset.price); });
+  } else if (sortOrder === 'price-desc') {
+    cards.sort(function(a, b) { return Number(b.dataset.price) - Number(a.dataset.price); });
+  } else if (sortOrder === 'name-asc') {
+    cards.sort(function(a, b) { return (a.dataset.name || '').localeCompare(b.dataset.name || ''); });
+  }
+  cards.forEach(function(card) { grid.appendChild(card); });
+
+  /* Show/hide by filter + search */
   var reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   if (reducedMotion) {
-    // Instant show/hide
-    cards.forEach(function(card) {
-      var match = filter === 'all' || card.getAttribute('data-category') === filter;
-      card.style.display = match ? '' : 'none';
-    });
-    updateEmptyState(filter);
+    cards.forEach(function(card) { card.style.display = cardMatches(card, q) ? '' : 'none'; });
+    updateEmptyState(activeFilter);
     return;
   }
 
-  // Step 1: fade out all cards
   cards.forEach(function(card) { card.classList.add('filtering-out'); });
-
-  // Step 2: after fade-out, hide non-matching, fade in matching
   setTimeout(function() {
-    var matchIdx = 0;
+    var idx = 0;
     cards.forEach(function(card) {
-      var match = filter === 'all' || card.getAttribute('data-category') === filter;
+      var match = cardMatches(card, q);
+      card.classList.remove('filtering-out', 'filtering-in');
       if (!match) {
         card.style.display = 'none';
-        card.classList.remove('filtering-out');
       } else {
         card.style.display = '';
-        card.classList.remove('filtering-out');
-        card.classList.remove('filtering-in');
-        // Stagger: force reflow then add class
         void card.offsetWidth;
-        card.style.animationDelay = (matchIdx * 0.05) + 's';
+        card.style.animationDelay = (idx * 0.05) + 's';
         card.classList.add('filtering-in');
-        matchIdx++;
+        idx++;
       }
     });
-    updateEmptyState(filter);
+    updateEmptyState(activeFilter);
   }, 150);
+}
+
+function cardMatches(card, q) {
+  var catOk = activeFilter === 'all' || card.dataset.category === activeFilter;
+  if (!catOk) return false;
+  if (!q) return true;
+  return (card.dataset.name  || '').includes(q) ||
+         (card.dataset.specs || '').includes(q);
 }
 
 /* ===== SLIDERS ===== */
@@ -774,6 +818,114 @@ function initLightbox() {
   }, { passive: true });
 
   window._openLightbox = openLightbox;
+}
+
+/* ===== SEARCH ===== */
+function initSearch() {
+  var input = document.getElementById('product-search');
+  var clear = document.getElementById('search-clear');
+  if (!input) return;
+
+  var timer;
+  input.addEventListener('input', function () {
+    clearTimeout(timer);
+    var val = input.value;
+    clear.style.display = val ? '' : 'none';
+    timer = setTimeout(function () {
+      searchQuery = val;
+      applyVisibility();
+    }, 220);
+  });
+
+  if (clear) clear.addEventListener('click', function () {
+    input.value = '';
+    clear.style.display = 'none';
+    searchQuery = '';
+    applyVisibility();
+    input.focus();
+  });
+}
+
+/* ===== SORT ===== */
+function initSort() {
+  var sel = document.getElementById('product-sort');
+  if (!sel) return;
+  sel.addEventListener('change', function () {
+    sortOrder = sel.value;
+    applyVisibility();
+  });
+}
+
+/* ===== WISHLIST ===== */
+function saveWishlist() {
+  try { localStorage.setItem('sentraq_wishlist', JSON.stringify(wishlist)); } catch(e) {}
+}
+
+function toggleWishlist(id) {
+  var idx = wishlist.indexOf(id);
+  if (idx === -1) wishlist.push(id);
+  else wishlist.splice(idx, 1);
+  saveWishlist();
+
+  document.querySelectorAll('.wishlist-btn[data-id="' + id + '"]').forEach(function (btn) {
+    var saved = wishlist.indexOf(id) !== -1;
+    btn.classList.toggle('wishlisted', saved);
+    var svg = btn.querySelector('svg');
+    if (svg) svg.setAttribute('fill', saved ? 'currentColor' : 'none');
+    btn.classList.add('wishlist-pop');
+    btn.addEventListener('animationend', function () { btn.classList.remove('wishlist-pop'); }, { once: true });
+  });
+
+  showToast(wishlist.indexOf(id) !== -1 ? '❤️ Disimpan ke wishlist' : 'Dihapus dari wishlist');
+}
+
+function initWishlistButtons() {
+  document.querySelectorAll('.wishlist-btn').forEach(function (btn) {
+    btn.addEventListener('click', function (e) {
+      e.preventDefault(); e.stopPropagation();
+      toggleWishlist(btn.dataset.id);
+    });
+  });
+}
+
+/* ===== SHARE ===== */
+function shareProduct(product) {
+  var url = 'https://sentrraq.github.io/#product-' + encodeURIComponent(product.id);
+  var title = product.name + ' — Sentraq';
+  var text  = product.name + ' · ' + formatPrice(product.price) + '\n' + (product.specs || '');
+
+  if (navigator.share) {
+    navigator.share({ title: title, text: text, url: url }).catch(function () {});
+  } else {
+    navigator.clipboard.writeText(url).then(function () {
+      showToast('🔗 Link disalin!');
+    }).catch(function () {
+      showToast('Link: ' + url);
+    });
+  }
+}
+
+function initShareButtons() {
+  document.querySelectorAll('.share-btn').forEach(function (btn) {
+    btn.addEventListener('click', function (e) {
+      e.preventDefault(); e.stopPropagation();
+      var id = btn.dataset.id;
+      var product = allProducts.find(function (p) { return p.id === id; });
+      if (product) shareProduct(product);
+    });
+  });
+}
+
+/* ===== TOAST ===== */
+function showToast(msg) {
+  var toast = document.getElementById('toast');
+  if (!toast) return;
+  toast.textContent = msg;
+  toast.classList.remove('toast--show');
+  void toast.offsetWidth;
+  toast.classList.add('toast--show');
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(function () { toast.classList.remove('toast--show'); }, 2400);
 }
 
 /* ===== ADD TO CART BUTTONS ===== */
