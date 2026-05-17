@@ -246,21 +246,6 @@ ul, ol { list-style: none; }
   display: flex; gap: 12px; justify-content: center;
   flex-wrap: wrap; margin-top: 44px;
 }
-.hero-scroll {
-  position: absolute; bottom: 44px; left: 50%;
-  transform: translateX(-50%);
-}
-.hero-scroll-line {
-  width: 1px; height: 56px;
-  background: linear-gradient(to bottom, var(--accent) 0%, transparent 100%);
-  animation: scrollDrop 2.4s ease-in-out infinite;
-}
-@keyframes scrollDrop {
-  0%   { opacity: 0; transform: scaleY(0); transform-origin: top; }
-  40%  { opacity: 1; transform: scaleY(1); }
-  80%  { opacity: 0; transform: scaleY(1); }
-  100% { opacity: 0; transform: scaleY(0); transform-origin: top; }
-}
 
 /* ===== HERO STATS ===== */
 .hero-stats {
@@ -955,7 +940,6 @@ ul, ol { list-style: none; }
   .hero-sub      { font-size: 17px; }
   .hero-ctas     { flex-direction: column; align-items: center; }
   .hero-ctas .btn { width: 100%; max-width: 320px; }
-  .hero-scroll   { display: none; }
 
   .trust-bar     { padding: 10px 8px; }
   .trust-bar-inner { justify-content: space-around; }
