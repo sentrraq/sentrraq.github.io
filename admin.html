@@ -217,6 +217,7 @@
                   <th>Produk</th>
                   <th class="hide-sm">Kategori</th>
                   <th class="hide-sm">Harga</th>
+                  <th class="hide-sm">Stok</th>
                   <th>Status</th>
                   <th style="text-align:right">Aksi</th>
                 </tr>
@@ -431,6 +432,19 @@
           <p style="font-size:11px; color:var(--text-muted); margin-top:8px; line-height:1.6;">
             JPG / PNG / WebP &middot; maks 5 foto &middot; rasio 4:3 direkomendasikan &middot; foto akan di-crop sebelum upload
           </p>
+        </div>
+
+        <div class="field-row-2">
+          <div class="field">
+            <label for="f-stock">Jumlah Unit (Stok) *</label>
+            <input id="f-stock" type="number" min="0" step="1" placeholder="contoh: 3" value="1" required>
+            <div class="field-hint">Jumlah unit yang tersedia untuk dijual</div>
+          </div>
+          <div class="field">
+            <label for="f-original-price">Harga Asli / Coret (Rp)</label>
+            <input id="f-original-price" type="number" min="0" step="1000" placeholder="contoh: 14000000">
+            <div class="field-hint">Opsional &mdash; untuk badge "Hemat X%"</div>
+          </div>
         </div>
 
         <div class="field">
@@ -769,11 +783,18 @@
       var imgHtml = (p.images && p.images.length)
         ? '<img class="td-img" src="' + escHtml(p.images[0]) + '" alt="" loading="lazy">'
         : '<div class="td-img-placeholder"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>';
+      var stockNum = typeof p.stock === 'number' ? p.stock : 1;
+      var stockBadge = p.status === 'sold' || stockNum <= 0
+        ? '<span class="stock-badge stock-badge--out">Habis</span>'
+        : stockNum <= 3
+        ? '<span class="stock-badge stock-badge--low">' + stockNum + ' unit</span>'
+        : '<span class="stock-badge stock-badge--ok">' + stockNum + ' unit</span>';
       return '<tr>' +
         '<td>' + imgHtml + '</td>' +
         '<td><div class="td-name">' + escHtml(p.name) + '</div><div class="td-spec">' + escHtml(p.specs || '') + '</div></td>' +
         '<td class="hide-sm"><span class="badge badge-' + escHtml(p.category) + '">' + escHtml(capFirst(p.category)) + '</span></td>' +
         '<td class="td-price hide-sm">' + formatRp(p.price) + '</td>' +
+        '<td class="hide-sm">' + stockBadge + '</td>' +
         '<td>' + (p.status === 'available'
           ? '<span class="badge badge-available">Tersedia</span>'
           : p.status === 'on_hold'
@@ -961,14 +982,16 @@
   function openEditModal(id) {
     var p = allProducts.find(function (x) { return x.id === id; });
     if (!p) return;
-    document.getElementById('f-id').value       = p.id;
-    document.getElementById('f-name').value     = p.name || '';
-    document.getElementById('f-category').value = p.category || '';
+    document.getElementById('f-id').value             = p.id;
+    document.getElementById('f-name').value           = p.name || '';
+    document.getElementById('f-category').value       = p.category || '';
     syncCustomSelect('f-category');
-    document.getElementById('f-price').value    = p.price || '';
-    document.getElementById('f-specs').value    = p.specs || '';
-    document.getElementById('f-desc').value     = p.description || '';
-    document.getElementById('f-status').value = p.status || 'available';
+    document.getElementById('f-price').value          = p.price || '';
+    document.getElementById('f-specs').value          = p.specs || '';
+    document.getElementById('f-desc').value           = p.description || '';
+    document.getElementById('f-status').value         = p.status || 'available';
+    document.getElementById('f-stock').value          = typeof p.stock === 'number' ? p.stock : 1;
+    document.getElementById('f-original-price').value = p.originalPrice || '';
     document.getElementById('price-preview').textContent = p.price ? formatRp(p.price) : '';
     existingImageUrls = (p.images || []).slice();
     pendingFiles = [];
@@ -990,14 +1013,16 @@
   document.getElementById('modal-save-btn').addEventListener('click', async function () {
     if (!document.getElementById('product-form').reportValidity()) return;
 
-    var isEdit   = !!document.getElementById('f-id').value;
-    var id       = document.getElementById('f-id').value || generateId(document.getElementById('f-name').value);
-    var name     = document.getElementById('f-name').value.trim();
-    var category = document.getElementById('f-category').value;
-    var price    = parseInt(document.getElementById('f-price').value, 10) || 0;
-    var specs    = document.getElementById('f-specs').value.trim();
-    var desc     = document.getElementById('f-desc').value.trim();
-    var status   = document.getElementById('f-status').value;
+    var isEdit        = !!document.getElementById('f-id').value;
+    var id            = document.getElementById('f-id').value || generateId(document.getElementById('f-name').value);
+    var name          = document.getElementById('f-name').value.trim();
+    var category      = document.getElementById('f-category').value;
+    var price         = parseInt(document.getElementById('f-price').value, 10) || 0;
+    var specs         = document.getElementById('f-specs').value.trim();
+    var desc          = document.getElementById('f-desc').value.trim();
+    var status        = document.getElementById('f-status').value;
+    var stock         = parseInt(document.getElementById('f-stock').value, 10) || 0;
+    var originalPrice = parseInt(document.getElementById('f-original-price').value, 10) || null;
 
     setSaveLoading(true);
     try {
@@ -1018,7 +1043,8 @@
       var productData = {
         id: id, name: name, category: category, specs: specs,
         price: price, description: desc, images: imageUrls,
-        status: status, available: status === 'available', updated_at: now
+        status: status, available: status === 'available',
+        stock: stock, originalPrice: originalPrice, updated_at: now
       };
 
       var result;

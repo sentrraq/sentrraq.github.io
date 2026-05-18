@@ -918,3 +918,13 @@ th:first-child, td:first-child { width: 52px; min-width: 52px; padding: 8px 8px 
   /* Finance header: Cetak PDF btn spans full */
   #btn-print-finance { width: 100%; justify-content: center; }
 }
+
+/* ===== STOCK BADGES (product table) ===== */
+.stock-badge {
+  display: inline-flex; align-items: center;
+  padding: 3px 9px; border-radius: 20px;
+  font-size: 11px; font-weight: 600; white-space: nowrap;
+}
+.stock-badge--ok  { background: rgba(52,199,89,0.12);  color: #28a745; }
+.stock-badge--low { background: rgba(255,159,10,0.14); color: #d97706; }
+.stock-badge--out { background: rgba(255,59,48,0.12);  color: #dc3545; }
