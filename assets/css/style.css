@@ -1250,20 +1250,33 @@ ul, ol { list-style: none; }
 
 /* ===== STOCK BADGE (PRODUCT CARD) ===== */
 .card-stock {
-  font-size: 11px; font-weight: 500;
-  margin-bottom: 12px; display: flex; align-items: center; gap: 5px;
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11px; font-weight: 600;
+  padding: 4px 9px; border-radius: 20px;
+  margin-bottom: 12px; width: fit-content;
+  letter-spacing: 0.01em;
 }
 .card-stock::before {
   content: '';
   display: inline-block; width: 6px; height: 6px;
-  border-radius: 50%; flex-shrink: 0;
+  border-radius: 50%; flex-shrink: 0; animation: stockPulse 2s ease-in-out infinite;
 }
-.card-stock--ok { color: #34c759; }
-.card-stock--ok::before { background: #34c759; }
-.card-stock--out { color: #ff3b30; }
-.card-stock--out::before { background: #ff3b30; }
-.card-stock--hold { color: #ff9f0a; }
+@keyframes stockPulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.45; }
+}
+.card-stock--ok   { background: rgba(52,199,89,0.12);  color: #1d9e45; }
+.card-stock--ok::before   { background: #34c759; }
+.card-stock--low  { background: rgba(255,159,10,0.13); color: #c47d00; }
+.card-stock--low::before  { background: #ff9f0a; }
+.card-stock--out  { background: rgba(255,59,48,0.10);  color: #cc2d26; animation: none; }
+.card-stock--out::before  { background: #ff3b30; animation: none; }
+.card-stock--hold { background: rgba(255,159,10,0.13); color: #c47d00; }
 .card-stock--hold::before { background: #ff9f0a; }
+[data-theme="dark"] .card-stock--ok   { background: rgba(52,199,89,0.15);  color: #4cd964; }
+[data-theme="dark"] .card-stock--low  { background: rgba(255,159,10,0.15); color: #ffb340; }
+[data-theme="dark"] .card-stock--out  { background: rgba(255,59,48,0.12);  color: #ff6961; }
+[data-theme="dark"] .card-stock--hold { background: rgba(255,159,10,0.15); color: #ffb340; }
 
 /* ===== FLY-TO-CART ANIMATION ===== */
 .fly-dot {

@@ -178,8 +178,10 @@ function openProductModal(p) {
     stockHTML = '<p class="card-stock card-stock--out">Stok habis</p>';
   } else if (isOnHold) {
     stockHTML = '<p class="card-stock card-stock--hold">Sedang ditahan</p>';
+  } else if (stock <= 3) {
+    stockHTML = '<p class="card-stock card-stock--low">Sisa ' + stock + ' unit &mdash; hampir habis!</p>';
   } else {
-    stockHTML = '<p class="card-stock card-stock--ok">Stok: ' + stock + ' unit tersedia</p>';
+    stockHTML = '<p class="card-stock card-stock--ok">' + stock + ' unit tersedia</p>';
   }
 
   var cartBtnHTML;
@@ -687,14 +689,14 @@ function buildCard(p) {
   mediaHTML = mediaHTML.slice(0, lastDiv) + overlays + mediaHTML.slice(lastDiv);
   var stock = (typeof p.stock === 'number') ? p.stock : (p.available ? 1 : 0);
   var stockHTML = '';
-  if (isSold) {
+  if (isSold || stock <= 0) {
     stockHTML = '<p class="card-stock card-stock--out">Stok habis</p>';
   } else if (isOnHold) {
     stockHTML = '<p class="card-stock card-stock--hold">Sedang ditahan</p>';
-  } else if (stock <= 0) {
-    stockHTML = '<p class="card-stock card-stock--out">Stok habis</p>';
+  } else if (stock <= 3) {
+    stockHTML = '<p class="card-stock card-stock--low">Sisa ' + stock + ' unit &mdash; hampir habis!</p>';
   } else {
-    stockHTML = '<p class="card-stock card-stock--ok">Stok: ' + stock + ' unit tersedia</p>';
+    stockHTML = '<p class="card-stock card-stock--ok">' + stock + ' unit tersedia</p>';
   }
 
   var ctaBtn;
