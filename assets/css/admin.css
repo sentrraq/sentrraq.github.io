@@ -776,7 +776,7 @@ th:first-child, td:first-child { width: 52px; min-width: 52px; padding: 8px 8px 
 }
 .history-item {
   display: grid;
-  grid-template-columns: 36px 2px 1fr;
+  grid-template-columns: 36px 2px 1fr auto;
   gap: 0 12px;
   padding: 16px 20px;
   border-bottom: 1px solid var(--border);
@@ -785,6 +785,16 @@ th:first-child, td:first-child { width: 52px; min-width: 52px; padding: 8px 8px 
 }
 .history-item:last-child { border-bottom: none; }
 .history-item:hover { background: var(--bg-elevated); }
+.history-item:hover .btn-delete-history-item { opacity: 1; }
+
+.btn-delete-history-item {
+  align-self: flex-start;
+  background: none; border: none; cursor: pointer;
+  color: var(--text-muted); padding: 4px;
+  border-radius: 6px; opacity: 0;
+  transition: opacity 0.15s, color 0.15s, background 0.15s;
+}
+.btn-delete-history-item:hover { color: var(--danger); background: rgba(248,113,113,0.12); }
 
 .history-dot {
   width: 36px; height: 36px; border-radius: 50%;
@@ -912,7 +922,8 @@ th:first-child, td:first-child { width: 52px; min-width: 52px; padding: 8px 8px 
   .history-stats-row { grid-template-columns: repeat(2, 1fr); }
 
   /* History item compact */
-  .history-item { grid-template-columns: 30px 2px 1fr; gap: 0 8px; padding: 12px 14px; }
+  .history-item { grid-template-columns: 30px 2px 1fr auto; gap: 0 8px; padding: 12px 14px; }
+  .btn-delete-history-item { opacity: 1; }
   .history-dot { width: 30px; height: 30px; }
 
   /* Finance header: Cetak PDF btn spans full */

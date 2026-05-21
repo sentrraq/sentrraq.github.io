@@ -1385,7 +1385,7 @@
         if (st) detail = '<span class="history-status-chip history-status-' + escHtml(l.new_status || l.old_status || '') + '">' + escHtml(st) + '</span>';
       }
 
-      return '<div class="history-item">'
+      return '<div class="history-item" data-hid="' + escHtml(l.id) + '">'
         + '<div class="history-dot history-dot-' + meta.color + '">'
         +   '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="' + meta.icon + '"/></svg>'
         + '</div>'
@@ -1397,11 +1397,28 @@
         +   '<div class="history-price">' + formatRp(l.product_price) + '</div>'
         +   '<div class="history-time">' + dateStr + ' · ' + timeStr + '</div>'
         + '</div>'
+        + '<button class="btn-delete-history-item" data-hid="' + escHtml(l.id) + '" title="Hapus entri ini">'
+        +   '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>'
+        + '</button>'
         + '</div>';
     }).join('');
   }
 
   document.getElementById('history-type-filter').addEventListener('change', function() {
+    loadHistoryData();
+  });
+
+  document.getElementById('history-timeline').addEventListener('click', async function(e) {
+    var btn = e.target.closest('.btn-delete-history-item');
+    if (!btn) return;
+    var hid = btn.dataset.hid;
+    if (!confirm('Hapus entri riwayat ini?')) return;
+    var { error } = await _sb.from('product_history').delete().eq('id', hid);
+    if (error) { showToast('Gagal hapus: ' + error.message, 'error'); return; }
+    var item = document.querySelector('.history-item[data-hid="' + hid + '"]');
+    if (item) item.remove();
+    showToast('Entri riwayat dihapus', 'info');
+    // Reload stats
     loadHistoryData();
   });
 
