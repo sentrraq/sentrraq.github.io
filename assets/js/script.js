@@ -1279,34 +1279,16 @@ function initCart() {
     });
   }
 
-  // Product picker (tambah produk lain dari daftar tersedia)
-  var addMoreBtn    = document.getElementById('cart-add-more-btn');
-  var pickerEl      = document.getElementById('cart-picker');
-  var pickerClose   = document.getElementById('cart-picker-close-btn');
-  var pickerSearch  = document.getElementById('cart-picker-search');
-
+  // Tambah Produk Lain — tutup cart, scroll ke daftar produk
+  var addMoreBtn = document.getElementById('cart-add-more-btn');
   if (addMoreBtn) addMoreBtn.addEventListener('click', function () {
-    if (!currentUser) {
-      showToast('Silakan masuk untuk menambah produk');
-      openAuthModal();
-      return;
+    closeCart();
+    var products = document.getElementById('products');
+    if (products) {
+      var top = products.getBoundingClientRect().top + window.scrollY - 72;
+      window.scrollTo({ top: top, behavior: 'smooth' });
     }
-    pickerEl.style.display = '';
-    addMoreBtn.style.display = 'none';
-    renderPickerList('');
-    if (pickerSearch) { pickerSearch.value = ''; pickerSearch.focus(); }
   });
-
-  if (pickerClose) pickerClose.addEventListener('click', function () {
-    pickerEl.style.display = 'none';
-    addMoreBtn.style.display = '';
-  });
-
-  if (pickerSearch) {
-    pickerSearch.addEventListener('input', function () {
-      renderPickerList(pickerSearch.value);
-    });
-  }
 }
 
 function toggleCart() {
@@ -1361,23 +1343,16 @@ function updateCartUI() {
   var totalEl = document.getElementById('cart-total-price');
   if (totalEl) totalEl.textContent = formatPrice(totalPrice);
 
-  /* Show/hide empty state, footer, picker section */
-  var emptyEl     = document.getElementById('cart-empty');
-  var footerEl    = document.getElementById('cart-footer');
-  var pickerSecEl = document.getElementById('cart-picker-section');
-  if (emptyEl)     emptyEl.style.display     = ids.length === 0 ? '' : 'none';
-  if (footerEl)    footerEl.style.display    = ids.length === 0 ? 'none' : '';
-  if (pickerSecEl) pickerSecEl.style.display = ids.length === 0 ? 'none' : '';
+  /* Show/hide empty state, footer, tambah-lain section */
+  var emptyEl      = document.getElementById('cart-empty');
+  var footerEl     = document.getElementById('cart-footer');
+  var addMoreSecEl = document.getElementById('cart-add-more-section');
+  if (emptyEl)      emptyEl.style.display      = ids.length === 0 ? '' : 'none';
+  if (footerEl)     footerEl.style.display     = ids.length === 0 ? 'none' : '';
+  if (addMoreSecEl) addMoreSecEl.style.display = ids.length === 0 ? 'none' : '';
 
   /* Render cart items */
   renderCartItems();
-
-  /* Refresh picker list if open */
-  var pickerEl = document.getElementById('cart-picker');
-  if (pickerEl && pickerEl.style.display !== 'none') {
-    var q = (document.getElementById('cart-picker-search') || {}).value || '';
-    renderPickerList(q);
-  }
 
   /* Update WA button href */
   var waBtn = document.getElementById('cart-wa-btn');
@@ -1472,47 +1447,6 @@ function buildCartWALink() {
   return 'https://wa.me/' + WA_NUMBER + '?text=' + encodeURIComponent(lines.join('\n'));
 }
 
-/* ===== CART PRODUCT PICKER ===== */
-function renderPickerList(query) {
-  var list = document.getElementById('cart-picker-list');
-  if (!list) return;
-
-  var q = (query || '').toLowerCase().trim();
-  var available = allProducts.filter(function (p) {
-    var isAvail = p.status === 'available' && (typeof p.stock !== 'number' || p.stock > 0);
-    var inCart  = !!cart[p.id];
-    if (!isAvail || inCart) return false;
-    if (!q) return true;
-    return (p.name || '').toLowerCase().includes(q) || (p.specs || '').toLowerCase().includes(q);
-  });
-
-  if (!available.length) {
-    list.innerHTML = '<div class="cart-picker-empty">Tidak ada produk tersedia' + (q ? ' untuk "' + escapeHtml(query) + '"' : '') + '</div>';
-    return;
-  }
-
-  list.innerHTML = available.map(function (p) {
-    return '<div class="cart-picker-row" data-id="' + escapeHtml(p.id) + '">' +
-      '<div class="cart-picker-info">' +
-        '<p class="cart-picker-name">' + escapeHtml(p.name) + '</p>' +
-        '<p class="cart-picker-specs">' + escapeHtml(p.specs || '') + '</p>' +
-      '</div>' +
-      '<div class="cart-picker-right">' +
-        '<span class="cart-picker-price">' + formatPrice(p.price) + '</span>' +
-        '<button class="btn btn-primary btn-sm cart-picker-add" data-id="' + escapeHtml(p.id) + '" style="font-size:11px;padding:4px 10px;min-height:28px">+Tambah</button>' +
-      '</div>' +
-    '</div>';
-  }).join('');
-
-  list.querySelectorAll('.cart-picker-add').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      var product = allProducts.find(function (p) { return p.id === btn.dataset.id; });
-      if (!product) return;
-      flyToCart(btn, function () { addToCart(product); });
-      showToast('Produk ditambahkan ke keranjang!');
-    });
-  });
-}
 
 /* ===== AUTH ===== */
 var currentUser = null;
