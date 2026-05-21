@@ -790,10 +790,12 @@ th:first-child, td:first-child { width: 52px; min-width: 52px; padding: 8px 8px 
 .btn-delete-history-item {
   align-self: flex-start;
   background: none; border: none; cursor: pointer;
-  color: var(--text-muted); padding: 4px;
-  border-radius: 6px; opacity: 0;
+  color: var(--text-muted); padding: 8px;
+  border-radius: 8px; opacity: 0;
   transition: opacity 0.15s, color 0.15s, background 0.15s;
+  display: flex; align-items: center; justify-content: center;
 }
+.btn-delete-history-item svg { width: 18px; height: 18px; }
 .btn-delete-history-item:hover { color: var(--danger); background: rgba(248,113,113,0.12); }
 
 .history-dot {
