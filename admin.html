@@ -78,11 +78,15 @@
       <div class="sidebar-section-label">Laporan</div>
       <button class="nav-item" data-view="finance">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-        Keuangan
+        Transaksi
       </button>
       <button class="nav-item" data-view="history">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
         Riwayat
+      </button>
+      <button class="nav-item" data-view="konsumen">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Konsumen
       </button>
       <div class="sidebar-section-label">Akun</div>
       <button class="nav-item" data-view="settings">
@@ -253,29 +257,39 @@
         </div>
       </div>
 
-      <!-- FINANCE VIEW -->
+      <!-- FINANCE / TRANSAKSI VIEW -->
       <div class="view" id="view-finance">
+
+        <!-- NEW: Transactions section -->
         <div class="stats-row">
           <div class="stat-card">
-            <div class="stat-label">Total Aset</div>
-            <div class="stat-val accent" id="fin-total-assets">—</div>
+            <div class="stat-label">Total Transaksi</div>
+            <div class="stat-val accent" id="trx-total-count">—</div>
           </div>
           <div class="stat-card">
             <div class="stat-label">Total Pendapatan</div>
-            <div class="stat-val success" id="fin-total-revenue">—</div>
+            <div class="stat-val success" id="trx-total-revenue">—</div>
           </div>
           <div class="stat-card">
-            <div class="stat-label">Produk Terjual</div>
-            <div class="stat-val" id="fin-sold-count">—</div>
+            <div class="stat-label">Menunggu Pembayaran</div>
+            <div class="stat-val warning" id="trx-pending-count">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Selesai</div>
+            <div class="stat-val" id="trx-paid-count">—</div>
           </div>
         </div>
 
         <div class="view-header">
-          <div class="view-heading">Log Penjualan</div>
+          <div class="view-heading">Transaksi Pesanan</div>
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-            <button class="btn btn-danger btn-sm" id="btn-delete-selected" style="display:none">Hapus Terpilih (<span id="selected-count">0</span>)</button>
-            <button class="btn btn-danger btn-sm" id="btn-clear-all-log">Kosongkan Semua</button>
-            <select class="history-filter-select" id="fin-month-filter">
+            <select class="history-filter-select" id="trx-status-filter">
+              <option value="">Semua Status</option>
+              <option value="pending">Menunggu</option>
+              <option value="paid">Lunas</option>
+              <option value="cancelled">Dibatalkan</option>
+            </select>
+            <select class="history-filter-select" id="trx-month-filter">
               <option value="">Semua Bulan</option>
               <option value="1">Januari</option><option value="2">Februari</option>
               <option value="3">Maret</option><option value="4">April</option>
@@ -284,7 +298,7 @@
               <option value="9">September</option><option value="10">Oktober</option>
               <option value="11">November</option><option value="12">Desember</option>
             </select>
-            <select class="history-filter-select" id="fin-year-filter">
+            <select class="history-filter-select" id="trx-year-filter">
               <option value="">Semua Tahun</option>
             </select>
             <button class="btn btn-secondary btn-sm" id="btn-print-finance">
@@ -295,24 +309,70 @@
         </div>
 
         <div class="table-wrap">
-          <div id="finance-loading" class="table-loading" style="display:none">
+          <div id="trx-loading" class="table-loading" style="display:none">
             <div class="spinner"></div>
-            <span>Memuat data...</span>
+            <span>Memuat transaksi...</span>
           </div>
           <div style="overflow-x:auto">
             <table>
               <thead>
                 <tr>
-                  <th style="width:32px"><input type="checkbox" id="fin-select-all" title="Pilih semua"></th>
-                  <th>Nama Produk</th>
-                  <th>Harga Listing</th>
-                  <th>Harga Aktual</th>
-                  <th>Tanggal Terjual</th>
-                  <th></th>
+                  <th>No. Pesanan</th>
+                  <th>Konsumen</th>
+                  <th class="hide-sm">Items</th>
+                  <th class="hide-sm">Total</th>
+                  <th class="hide-sm">Metode</th>
+                  <th>Status</th>
+                  <th class="hide-sm">Tanggal</th>
+                  <th style="text-align:right">Aksi</th>
                 </tr>
               </thead>
-              <tbody id="finance-tbody"></tbody>
+              <tbody id="trx-tbody"></tbody>
             </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- KONSUMEN VIEW -->
+      <div class="view" id="view-konsumen">
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="stat-label">Total Konsumen</div>
+            <div class="stat-val accent" id="kons-total">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Konsumen Baru (Bulan Ini)</div>
+            <div class="stat-val success" id="kons-new">—</div>
+          </div>
+        </div>
+
+        <div class="view-header">
+          <div class="view-heading">Daftar Konsumen</div>
+        </div>
+
+        <div class="table-wrap">
+          <div id="kons-loading" class="table-loading" style="display:none">
+            <div class="spinner"></div>
+            <span>Memuat konsumen...</span>
+          </div>
+          <div style="overflow-x:auto">
+            <table>
+              <thead>
+                <tr>
+                  <th>Nama</th>
+                  <th>Email</th>
+                  <th class="hide-sm">Bergabung</th>
+                  <th class="hide-sm">Total Transaksi</th>
+                  <th class="hide-sm">Total Belanja</th>
+                  <th style="text-align:right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="kons-tbody"></tbody>
+            </table>
+          </div>
+          <div id="kons-empty" style="display:none; padding:32px; text-align:center; color:var(--text-muted); font-size:14px;">
+            Belum ada konsumen terdaftar. Pastikan tabel profiles sudah dibuat di Supabase.
           </div>
         </div>
       </div>
@@ -683,7 +743,7 @@
   });
 
   /* ── NAVIGATION ── */
-  var VIEW_TITLES = { products: 'Produk', settings: 'Pengaturan', finance: 'Keuangan', history: 'Riwayat' };
+  var VIEW_TITLES = { products: 'Produk', settings: 'Pengaturan', finance: 'Transaksi', history: 'Riwayat', konsumen: 'Konsumen' };
 
   function showView(name) {
     document.querySelectorAll('.view').forEach(function (v) { v.classList.remove('active'); });
@@ -693,8 +753,9 @@
     var nav = document.querySelector('[data-view="' + name + '"]');
     if (nav) nav.classList.add('active');
     document.getElementById('topbar-title').textContent = VIEW_TITLES[name] || name;
-    if (name === 'finance') loadFinanceData();
+    if (name === 'finance') { loadTransactionsData(); }
     if (name === 'history') loadHistoryData();
+    if (name === 'konsumen') loadKonsumenData();
   }
 
   document.querySelectorAll('.nav-item[data-view]').forEach(function (btn) {
@@ -926,7 +987,6 @@
     if (prod) await logHistory({ product_id: id, product_name: prod.name, product_price: prod.price || 0, event_type: 'archived', old_status: prod.status });
     showToast('Produk diarsipkan', 'info');
     await loadProductsTable();
-    loadFinanceData();
     loadHistoryData();
   }
 
@@ -943,7 +1003,6 @@
     }
     showToast('Produk dihapus', 'info');
     await loadProductsTable();
-    await loadFinanceData();
     await loadHistoryData();
   }
 
@@ -1095,7 +1154,6 @@
       showToast(isEdit ? 'Produk berhasil diperbarui' : 'Produk berhasil ditambahkan');
       closeModal();
       await loadProductsTable();
-      await loadFinanceData();
       await loadHistoryData();
     } catch (err) {
       showToast('Gagal menyimpan: ' + err.message, 'error');
@@ -1269,158 +1327,6 @@
     if (thumb && window._openLightbox) window._openLightbox(thumb.src);
   });
 
-  /* ── FINANCE ── */
-  async function loadFinanceData() {
-    document.getElementById('finance-loading').style.display = 'flex';
-
-    // Fetch langsung dari DB — jangan pakai allProducts cache, agar selalu akurat
-    var prodResult = await _sb.from('products').select('id, price, status').eq('archived', false);
-    var freshProducts = (prodResult.data || []);
-
-    // Cleanup: hapus sales_log untuk produk yang TIDAK lagi berstatus sold
-    var nonSoldIds = freshProducts.filter(function(p){ return p.status !== 'sold'; }).map(function(p){ return p.id; });
-    if (nonSoldIds.length > 0) {
-      var cleanupResult = await _sb.from('sales_log').delete().in('product_id', nonSoldIds);
-      if (cleanupResult.error) showToast('Cleanup error: ' + cleanupResult.error.message, 'error');
-    }
-
-    var totalAssets = freshProducts.reduce(function(sum, p) { return sum + (p.price || 0); }, 0);
-    document.getElementById('fin-total-assets').textContent = formatRp(totalAssets);
-
-    // Populate year dropdown sekali saja
-    var yearSel = document.getElementById('fin-year-filter');
-    if (yearSel.options.length <= 1) {
-      for (var y = 2030; y >= 2026; y--) {
-        var opt = document.createElement('option');
-        opt.value = y; opt.textContent = y;
-        if (y === 2026) opt.selected = true;
-        yearSel.appendChild(opt);
-      }
-      refreshCustomSelect('fin-year-filter');
-    }
-
-    var allLogs = (await _sb.from('sales_log').select('*').order('sold_at', { ascending: false })).data || [];
-    document.getElementById('finance-loading').style.display = 'none';
-
-    // Filter berdasarkan bulan & tahun
-    var selMonth = parseInt(document.getElementById('fin-month-filter').value) || 0;
-    var selYear  = parseInt(document.getElementById('fin-year-filter').value)  || 0;
-    var logs = allLogs.filter(function(l) {
-      var d = new Date(l.sold_at);
-      if (selYear  && d.getFullYear() !== selYear)      return false;
-      if (selMonth && (d.getMonth() + 1) !== selMonth)  return false;
-      return true;
-    });
-
-    var totalRevenue = logs.reduce(function(sum, l) { return sum + (l.actual_price != null ? l.actual_price : (l.product_price || 0)); }, 0);
-    document.getElementById('fin-total-revenue').textContent = formatRp(totalRevenue);
-    document.getElementById('fin-sold-count').textContent = logs.length;
-
-    var tbody = document.getElementById('finance-tbody');
-    if (!logs.length) {
-      tbody.innerHTML = '<tr class="empty-row"><td colspan="6">Belum ada penjualan' + (selMonth || selYear ? ' di periode ini' : '') + '.</td></tr>';
-      document.getElementById('btn-delete-selected').style.display = 'none';
-      return;
-    }
-
-    function renderFinanceRows(logsArr) {
-      tbody.innerHTML = logsArr.map(function(l) {
-        var date = new Date(l.sold_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
-        var actualPrice = l.actual_price != null ? l.actual_price : l.product_price;
-        var isNego = actualPrice !== l.product_price;
-        return '<tr data-log-id="' + l.id + '">' +
-          '<td><input type="checkbox" class="fin-row-check" data-log-id="' + l.id + '"></td>' +
-          '<td><div class="td-name">' + escHtml(l.product_name) + '</div></td>' +
-          '<td class="td-price td-muted">' + formatRp(l.product_price) + '</td>' +
-          '<td class="td-price">' +
-            '<span class="actual-price-display' + (isNego ? ' is-nego' : '') + '">' + formatRp(actualPrice) + '</span>' +
-            '<input class="actual-price-input" type="number" value="' + actualPrice + '" style="display:none" min="0">' +
-          '</td>' +
-          '<td>' + date + '</td>' +
-          '<td class="td-actions">' +
-            '<button class="btn-icon btn-edit-actual" title="Edit harga aktual">' +
-              '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>' +
-            '</button>' +
-            '<button class="btn-icon btn-save-actual" title="Simpan" style="display:none;color:var(--success)">' +
-              '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' +
-            '</button>' +
-            '<button class="btn-icon btn-cancel-actual" title="Batal" style="display:none;color:var(--danger)">' +
-              '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>' +
-            '</button>' +
-          '</td>' +
-        '</tr>';
-      }).join('');
-
-      // update delete button count when any row checkbox changes
-      tbody.querySelectorAll('input.fin-row-check').forEach(function(cb) {
-        cb.addEventListener('change', function() {
-          var count = tbody.querySelectorAll('input.fin-row-check:checked').length;
-          document.getElementById('selected-count').textContent = count;
-          document.getElementById('btn-delete-selected').style.display = count ? 'inline-flex' : 'none';
-        });
-      });
-
-      // bind edit/save/cancel events
-      tbody.querySelectorAll('tr[data-log-id]').forEach(function(row) {
-        var logId    = row.dataset.logId;
-        var display  = row.querySelector('.actual-price-display');
-        var input    = row.querySelector('.actual-price-input');
-        var btnEdit  = row.querySelector('.btn-edit-actual');
-        var btnSave  = row.querySelector('.btn-save-actual');
-        var btnCancel= row.querySelector('.btn-cancel-actual');
-        var origVal  = input.value;
-
-        btnEdit.addEventListener('click', function() {
-          display.style.display = 'none';
-          input.style.display = 'inline-block';
-          btnEdit.style.display = 'none';
-          btnSave.style.display = 'inline-flex';
-          btnCancel.style.display = 'inline-flex';
-          input.focus();
-        });
-
-        btnCancel.addEventListener('click', function() {
-          input.value = origVal;
-          display.style.display = '';
-          input.style.display = 'none';
-          btnEdit.style.display = '';
-          btnSave.style.display = 'none';
-          btnCancel.style.display = 'none';
-        });
-
-        btnSave.addEventListener('click', async function() {
-          var newVal = parseInt(input.value, 10);
-          if (isNaN(newVal) || newVal < 0) { showToast('Harga tidak valid', 'error'); return; }
-          btnSave.disabled = true;
-          var res = await _sb.from('sales_log').update({ actual_price: newVal }).eq('id', logId);
-          btnSave.disabled = false;
-          if (res.error) { showToast('Gagal menyimpan: ' + res.error.message, 'error'); return; }
-          origVal = String(newVal);
-          display.textContent = formatRp(newVal);
-          // update nego indicator + sync logsArr so recalc uses fresh values
-          var logEntry = logsArr.find(function(x){ return String(x.id) === logId; });
-          if (logEntry) {
-            logEntry.actual_price = newVal;
-            display.classList.toggle('is-nego', newVal !== logEntry.product_price);
-          }
-          display.style.display = '';
-          input.style.display = 'none';
-          btnEdit.style.display = '';
-          btnSave.style.display = 'none';
-          btnCancel.style.display = 'none';
-          // recalc total revenue
-          var updatedRevenue = logsArr.reduce(function(sum, l) {
-            if (String(l.id) === logId) return sum + newVal;
-            return sum + (l.actual_price != null ? l.actual_price : (l.product_price || 0));
-          }, 0);
-          document.getElementById('fin-total-revenue').textContent = formatRp(updatedRevenue);
-          showToast('Harga aktual diperbarui');
-        });
-      });
-    }
-
-    renderFinanceRows(logs);
-  }
 
   /* ── HISTORY ── */
   async function logHistory(entry) {
@@ -1592,60 +1498,24 @@
     loadHistoryData();
   });
 
-  /* ── FINANCE FILTER + PRINT ── */
-  document.getElementById('fin-month-filter').addEventListener('change', loadFinanceData);
-  document.getElementById('fin-year-filter').addEventListener('change', loadFinanceData);
-
-  /* ── FINANCE SELECT ALL + BULK DELETE ── */
-  document.getElementById('fin-select-all').addEventListener('change', function() {
-    var finTbody = document.getElementById('finance-tbody');
-    finTbody.querySelectorAll('input.fin-row-check').forEach(function(cb) { cb.checked = this.checked; }, this);
-    var count = finTbody.querySelectorAll('input.fin-row-check:checked').length;
-    document.getElementById('selected-count').textContent = count;
-    document.getElementById('btn-delete-selected').style.display = count ? 'inline-flex' : 'none';
-  });
-
-  document.getElementById('btn-clear-all-log').addEventListener('click', async function() {
-    if (!confirm('Kosongkan semua log penjualan? Tindakan tidak bisa dibatalkan.')) return;
-    var res = await _sb.from('sales_log').delete().not('id', 'is', null);
-    if (res.error) { showToast('Gagal: ' + res.error.message, 'error'); return; }
-    showToast('Log penjualan dikosongkan');
-    await loadFinanceData();
-  });
-
-  document.getElementById('btn-delete-selected').addEventListener('click', async function() {
-    var finTbody = document.getElementById('finance-tbody');
-    var checked = Array.from(finTbody.querySelectorAll('input.fin-row-check:checked'));
-    if (!checked.length) return;
-    if (!confirm('Hapus ' + checked.length + ' entri log penjualan ini?')) return;
-    var ids = checked.map(function(cb) { return cb.dataset.logId; });
-    var failed = false;
-    for (var i = 0; i < ids.length; i++) {
-      var res = await _sb.from('sales_log').delete().eq('id', ids[i]);
-      if (res.error) { showToast('Gagal menghapus: ' + res.error.message, 'error'); failed = true; break; }
-    }
-    if (failed) return;
-    showToast('Berhasil dihapus');
-    document.getElementById('fin-select-all').checked = false;
-    document.getElementById('btn-delete-selected').style.display = 'none';
-    await loadFinanceData();
-  });
-
+  /* ── PRINT TRANSAKSI ── */
   document.getElementById('btn-print-finance').addEventListener('click', function() {
     var bulanNames = ['','Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
-    var selMonth   = parseInt(document.getElementById('fin-month-filter').value) || 0;
-    var selYear    = document.getElementById('fin-year-filter').value || '';
+    var selMonth   = parseInt((document.getElementById('trx-month-filter') || {}).value) || 0;
+    var selYear    = (document.getElementById('trx-year-filter') || {}).value || '';
     var periodeLabel = (selMonth ? bulanNames[selMonth] + ' ' : '') + (selYear || 'Semua Tahun');
 
     var rows = [];
-    document.querySelectorAll('#finance-tbody tr[data-log-id]').forEach(function(tr) {
+    document.querySelectorAll('#trx-tbody tr').forEach(function(tr) {
       var cells = tr.querySelectorAll('td');
-      var nameEl = cells[0] ? cells[0].querySelector('.td-name') : null;
+      if (cells.length < 6) return;
       rows.push({
-        name:  nameEl ? nameEl.textContent.trim() : (cells[0] ? cells[0].textContent.trim() : ''),
-        listPrice: cells[1] ? cells[1].textContent.trim() : '',
-        price: cells[2] ? cells[2].querySelector('.actual-price-display').textContent.trim() : '',
-        date:  cells[3] ? cells[3].textContent.trim() : ''
+        order:  cells[0] ? cells[0].textContent.trim() : '—',
+        name:   cells[1] ? cells[1].querySelector('.td-name') ? cells[1].querySelector('.td-name').textContent.trim() : cells[1].textContent.trim() : '—',
+        total:  cells[3] ? cells[3].textContent.trim() : '—',
+        method: cells[4] ? cells[4].textContent.trim() : '—',
+        status: cells[5] ? cells[5].textContent.trim() : '—',
+        date:   cells[6] ? cells[6].textContent.trim() : '—'
       });
     });
 
@@ -1654,55 +1524,207 @@
     var jsPDF = window.jspdf ? window.jspdf.jsPDF : (window.jsPDF || null);
     if (!jsPDF) { showToast('Library PDF belum siap, coba lagi', 'error'); return; }
 
-    var doc = new jsPDF();
+    var doc = new jsPDF({ orientation: 'landscape' });
     var pageW = doc.internal.pageSize.getWidth();
 
-    // Header
     doc.setFontSize(18); doc.setFont('helvetica', 'bold');
-    doc.text('LAPORAN PENJUALAN', pageW / 2, 20, { align: 'center' });
-    doc.setFontSize(12); doc.setFont('helvetica', 'normal');
-    doc.text('Sentraq — Pre-owned Electronics', pageW / 2, 28, { align: 'center' });
-    doc.setFontSize(10);
-    doc.text('Periode: ' + periodeLabel, pageW / 2, 35, { align: 'center' });
-    doc.text('Dicetak: ' + new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }), pageW / 2, 41, { align: 'center' });
-
+    doc.text('LAPORAN TRANSAKSI', pageW / 2, 18, { align: 'center' });
+    doc.setFontSize(11); doc.setFont('helvetica', 'normal');
+    doc.text('Sentraq — Pre-owned Electronics', pageW / 2, 26, { align: 'center' });
+    doc.setFontSize(9);
+    doc.text('Periode: ' + periodeLabel, pageW / 2, 33, { align: 'center' });
+    doc.text('Dicetak: ' + new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }), pageW / 2, 39, { align: 'center' });
     doc.setDrawColor(180); doc.setLineWidth(0.4);
-    doc.line(14, 46, pageW - 14, 46);
+    doc.line(14, 44, pageW - 14, 44);
 
-    // Kolom header tabel
-    doc.setFontSize(9); doc.setFont('helvetica', 'bold');
-    doc.text('No', 14, 54);
-    doc.text('Nama Produk', 22, 54);
-    doc.text('Harga Aktual', 135, 54);
-    doc.text('Tanggal Terjual', 168, 54);
-    doc.line(14, 57, pageW - 14, 57);
+    doc.setFontSize(8); doc.setFont('helvetica', 'bold');
+    doc.text('No. Pesanan', 14, 52);
+    doc.text('Konsumen', 52, 52);
+    doc.text('Total', 130, 52);
+    doc.text('Metode', 158, 52);
+    doc.text('Status', 210, 52);
+    doc.text('Tanggal', 240, 52);
+    doc.line(14, 55, pageW - 14, 55);
 
-    // Baris data
     doc.setFont('helvetica', 'normal');
-    var y = 64;
+    var y = 62;
     rows.forEach(function(r, i) {
-      if (y > 275) { doc.addPage(); y = 20; }
-      doc.text(String(i + 1), 14, y);
-      doc.text(r.name.substring(0, 45), 22, y);
-      doc.text(r.price, 135, y);
-      doc.text(r.date, 168, y);
-      y += 8;
+      if (y > 190) { doc.addPage(); y = 20; }
+      doc.text(r.order.substring(0, 14), 14, y);
+      doc.text(r.name.substring(0, 28), 52, y);
+      doc.text(r.total.substring(0, 18), 130, y);
+      doc.text(r.method.substring(0, 18), 158, y);
+      doc.text(r.status.substring(0, 12), 210, y);
+      doc.text(r.date.substring(0, 16), 240, y);
+      y += 7;
     });
 
     doc.line(14, y + 2, pageW - 14, y + 2);
-    y += 10;
-
-    // Total
+    y += 9;
     doc.setFont('helvetica', 'bold');
-    var totalText = document.getElementById('fin-total-revenue').textContent;
-    var countText = document.getElementById('fin-sold-count').textContent + ' produk terjual';
-    doc.text(countText, 14, y);
-    doc.text('Total: ' + totalText, pageW - 14, y, { align: 'right' });
+    var totalPaid = document.getElementById('trx-total-revenue').textContent;
+    doc.text('Total Lunas: ' + totalPaid, pageW - 14, y, { align: 'right' });
 
-    var fname = 'Laporan-Sentraq-' + periodeLabel.replace(/\s+/g, '-') + '.pdf';
+    var fname = 'Transaksi-Sentraq-' + periodeLabel.replace(/\s+/g, '-') + '.pdf';
     doc.save(fname);
     showToast('PDF berhasil diunduh');
   });
+
+  /* ── TRANSACTIONS ── */
+  async function loadTransactionsData() {
+    var loadingEl = document.getElementById('trx-loading');
+    if (loadingEl) loadingEl.style.display = 'flex';
+
+    // Populate year dropdown
+    var yearSel = document.getElementById('trx-year-filter');
+    if (yearSel && yearSel.options.length <= 1) {
+      for (var y = 2030; y >= 2024; y--) {
+        var opt = document.createElement('option');
+        opt.value = y; opt.textContent = y;
+        if (y === new Date().getFullYear()) opt.selected = true;
+        yearSel.appendChild(opt);
+      }
+      refreshCustomSelect('trx-year-filter');
+    }
+
+    var result = await _sb.from('transactions').select('*').order('created_at', { ascending: false });
+    if (loadingEl) loadingEl.style.display = 'none';
+    if (result.error) { showToast('Gagal memuat transaksi: ' + result.error.message, 'error'); return; }
+
+    var allTrx = result.data || [];
+
+    // Apply filters
+    var statusFilter = (document.getElementById('trx-status-filter') || {}).value || '';
+    var monthFilter  = parseInt((document.getElementById('trx-month-filter') || {}).value) || 0;
+    var yearFilter   = parseInt((document.getElementById('trx-year-filter')  || {}).value) || 0;
+
+    var trx = allTrx.filter(function(t) {
+      if (statusFilter && t.payment_status !== statusFilter) return false;
+      var d = new Date(t.created_at);
+      if (yearFilter  && d.getFullYear() !== yearFilter)      return false;
+      if (monthFilter && (d.getMonth() + 1) !== monthFilter)  return false;
+      return true;
+    });
+
+    // Stats (always from all unfiltered)
+    document.getElementById('trx-total-count').textContent  = allTrx.length;
+    document.getElementById('trx-total-revenue').textContent = formatRp(allTrx.filter(function(t){ return t.payment_status === 'paid'; }).reduce(function(s,t){ return s + (t.total||0); }, 0));
+    document.getElementById('trx-pending-count').textContent = allTrx.filter(function(t){ return t.payment_status === 'pending'; }).length;
+    document.getElementById('trx-paid-count').textContent    = allTrx.filter(function(t){ return t.payment_status === 'paid'; }).length;
+
+    var tbody = document.getElementById('trx-tbody');
+    if (!trx.length) {
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="8">Belum ada transaksi.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = trx.map(function(t) {
+      var itemCount = Array.isArray(t.items) ? t.items.length : 0;
+      var itemSummary = Array.isArray(t.items) && t.items.length
+        ? t.items.map(function(i){ return i.name + (i.qty > 1 ? ' ×' + i.qty : ''); }).join(', ')
+        : '—';
+      var statusBadge = t.payment_status === 'paid'
+        ? '<span class="badge badge-available">Lunas</span>'
+        : t.payment_status === 'cancelled'
+        ? '<span class="badge badge-sold">Dibatalkan</span>'
+        : '<span class="badge badge-hold">Menunggu</span>';
+      var date = new Date(t.created_at).toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' });
+      var markBtn = t.payment_status === 'pending'
+        ? '<button class="btn btn-primary btn-sm btn-mark-paid" data-id="' + escHtml(t.id) + '" data-order="' + escHtml(t.order_number||'') + '" data-total="' + (t.total||0) + '" data-name="' + escHtml(t.user_name||t.user_email||'') + '">Tandai Lunas</button>'
+        : '';
+      return '<tr>' +
+        '<td><span style="font-size:12px;font-weight:700;color:var(--accent)">' + escHtml(t.order_number || '—') + '</span></td>' +
+        '<td><div class="td-name">' + escHtml(t.user_name || '—') + '</div><div class="td-spec">' + escHtml(t.user_email || '') + '</div></td>' +
+        '<td class="hide-sm"><div class="td-name">' + itemCount + ' item</div><div class="td-spec" style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escHtml(itemSummary) + '</div></td>' +
+        '<td class="td-price hide-sm">' + formatRp(t.total || 0) + '</td>' +
+        '<td class="hide-sm"><div class="td-spec" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escHtml(t.payment_method || '—') + '</div></td>' +
+        '<td>' + statusBadge + '</td>' +
+        '<td class="hide-sm">' + date + '</td>' +
+        '<td><div class="td-actions">' + markBtn + '</div></td>' +
+      '</tr>';
+    }).join('');
+
+    // Bind "Tandai Lunas" buttons
+    tbody.querySelectorAll('.btn-mark-paid').forEach(function(btn) {
+      btn.addEventListener('click', async function() {
+        var id = btn.dataset.id;
+        if (!confirm('Tandai pesanan ' + btn.dataset.order + ' sebagai lunas?')) return;
+        btn.disabled = true;
+        var res = await _sb.from('transactions').update({ payment_status: 'paid' }).eq('id', id);
+        if (res.error) { showToast('Gagal: ' + res.error.message, 'error'); btn.disabled = false; return; }
+        // Also log to sales_log for compatibility
+        try {
+          await _sb.from('sales_log').insert([{
+            product_name: btn.dataset.name + ' — ' + btn.dataset.order,
+            product_price: parseInt(btn.dataset.total, 10) || 0,
+            actual_price: parseInt(btn.dataset.total, 10) || 0,
+            sold_at: new Date().toISOString()
+          }]);
+        } catch(e) {}
+        showToast('Pesanan ditandai lunas');
+        loadTransactionsData();
+      });
+    });
+  }
+
+  // Bind transaction filter selects
+  document.addEventListener('change', function(e) {
+    if (e.target.id === 'trx-status-filter' || e.target.id === 'trx-month-filter' || e.target.id === 'trx-year-filter') {
+      loadTransactionsData();
+    }
+  });
+
+  /* ── KONSUMEN ── */
+  async function loadKonsumenData() {
+    var loadingEl = document.getElementById('kons-loading');
+    var emptyEl   = document.getElementById('kons-empty');
+    var tbody     = document.getElementById('kons-tbody');
+    if (loadingEl) loadingEl.style.display = 'flex';
+    if (emptyEl)   emptyEl.style.display   = 'none';
+
+    var result = await _sb.from('profiles').select('*').order('created_at', { ascending: false });
+    if (loadingEl) loadingEl.style.display = 'none';
+
+    if (result.error) {
+      if (emptyEl) { emptyEl.style.display = ''; emptyEl.textContent = 'Belum ada konsumen terdaftar. Pastikan tabel profiles sudah dibuat di Supabase.'; }
+      return;
+    }
+
+    var profiles = result.data || [];
+    var now = new Date();
+    var thisMonth = profiles.filter(function(p) {
+      var d = new Date(p.created_at);
+      return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+    }).length;
+
+    document.getElementById('kons-total').textContent = profiles.length;
+    document.getElementById('kons-new').textContent   = thisMonth;
+
+    if (!profiles.length) {
+      if (emptyEl) emptyEl.style.display = '';
+      tbody.innerHTML = '';
+      return;
+    }
+
+    // Fetch transaction counts/totals per user
+    var trxResult = await _sb.from('transactions').select('user_id, total');
+    var trxData = (trxResult.data || []);
+
+    tbody.innerHTML = profiles.map(function(p) {
+      var userTrx    = trxData.filter(function(t){ return t.user_id === p.id; });
+      var trxCount   = userTrx.length;
+      var trxTotal   = userTrx.reduce(function(s,t){ return s + (t.total||0); }, 0);
+      var joinDate   = new Date(p.created_at).toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' });
+      return '<tr>' +
+        '<td><div class="td-name">' + escHtml(p.name || '—') + '</div></td>' +
+        '<td><div class="td-spec">' + escHtml(p.email || '—') + '</div></td>' +
+        '<td class="hide-sm">' + joinDate + '</td>' +
+        '<td class="hide-sm">' + trxCount + ' transaksi</td>' +
+        '<td class="td-price hide-sm">' + formatRp(trxTotal) + '</td>' +
+        '<td style="text-align:right"><a href="mailto:' + escHtml(p.email||'') + '" class="btn btn-secondary btn-sm">Email</a></td>' +
+      '</tr>';
+    }).join('');
+  }
 
   /* ── SETTINGS ── */
   document.getElementById('btn-change-pw').addEventListener('click', async function () {
@@ -1764,10 +1786,11 @@
     });
 
     // Init custom select dropdowns
-    initCustomSelect('fin-month-filter');
-    initCustomSelect('fin-year-filter');
     initCustomSelect('history-type-filter');
     initCustomSelect('f-category');
+    initCustomSelect('trx-status-filter');
+    initCustomSelect('trx-month-filter');
+    initCustomSelect('trx-year-filter');
 
     // Single source of truth for auth state
     _sb.auth.onAuthStateChange(function (event, session) {

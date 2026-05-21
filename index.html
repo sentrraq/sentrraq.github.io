@@ -471,12 +471,31 @@
         <a href="#products" class="btn btn-primary btn-sm cart-empty-cta" id="cart-empty-cta">Lihat Produk</a>
       </div>
     </div>
+    <!-- Tambah Item Lain -->
+    <div class="cart-custom-section" id="cart-custom-section" style="display:none">
+      <div class="cart-custom-form" id="cart-custom-form" style="display:none">
+        <input type="text" id="custom-item-name" class="cart-custom-input" placeholder="Nama item (mis. Aksesoris, Tas…)" autocomplete="off">
+        <div style="display:flex;gap:6px;margin-top:6px">
+          <input type="number" id="custom-item-price" class="cart-custom-input" placeholder="Harga (Rp)" min="0" style="flex:2">
+          <input type="number" id="custom-item-qty" class="cart-custom-input" placeholder="Qty" min="1" value="1" style="flex:1">
+        </div>
+        <div style="display:flex;gap:6px;margin-top:6px">
+          <button class="btn btn-primary btn-sm" id="custom-item-save-btn" style="flex:1">Tambahkan</button>
+          <button class="btn btn-secondary btn-sm" id="custom-item-cancel-btn">Batal</button>
+        </div>
+      </div>
+      <button class="btn btn-ghost btn-sm btn-full cart-add-custom-btn" id="cart-add-custom-btn" style="margin-top:4px">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Tambah Item Lain
+      </button>
+    </div>
     <div class="cart-footer" id="cart-footer" style="display:none">
       <div class="cart-total-row">
         <span>Total</span>
         <span class="cart-total-price" id="cart-total-price">Rp 0</span>
       </div>
-      <a class="btn btn-primary btn-full cart-wa-btn" id="cart-wa-btn" href="#" target="whatsapp" rel="noopener noreferrer">
+      <button class="btn btn-primary btn-full cart-checkout-btn" id="checkout-btn">Checkout &amp; Bayar</button>
+      <a class="btn btn-ghost btn-full cart-wa-btn" id="cart-wa-btn" href="#" target="whatsapp" rel="noopener noreferrer">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
         Pesan via WhatsApp
       </a>
@@ -565,6 +584,97 @@
           <p class="auth-useremail" id="auth-useremail"></p>
           <button class="btn btn-secondary btn-full" id="logout-btn">Keluar</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!--
+  Supabase SQL to run:
+  CREATE TABLE profiles (id uuid PRIMARY KEY REFERENCES auth.users(id), name text, email text, phone text, created_at timestamptz DEFAULT now());
+  CREATE TABLE transactions (id uuid DEFAULT gen_random_uuid() PRIMARY KEY, user_id uuid, user_email text, user_name text, items jsonb, total bigint, payment_method text, payment_status text DEFAULT 'pending', notes text, order_number text, created_at timestamptz DEFAULT now());
+  ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
+  CREATE POLICY "insert own" ON transactions FOR INSERT WITH CHECK (auth.uid() = user_id);
+  CREATE POLICY "select own" ON transactions FOR SELECT USING (auth.uid() = user_id);
+  ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+  CREATE POLICY "public read profiles" ON profiles FOR SELECT USING (true);
+  CREATE POLICY "insert own profile" ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
+  -->
+
+  <!-- CHECKOUT MODAL -->
+  <div class="checkout-modal" id="checkout-modal" role="dialog" aria-modal="true" aria-label="Checkout pesanan">
+    <div class="product-modal-overlay" id="checkout-modal-overlay"></div>
+    <div class="checkout-modal-box">
+      <button class="product-modal-close" id="checkout-modal-close" aria-label="Tutup">&times;</button>
+      <div class="checkout-modal-inner">
+        <h2 class="checkout-modal-title">Checkout &amp; Bayar</h2>
+
+        <div class="checkout-order-summary" id="checkout-order-summary"></div>
+
+        <div class="checkout-total-row">
+          <span>Total Pembayaran</span>
+          <span class="checkout-total-price" id="checkout-total-price">Rp 0</span>
+        </div>
+
+        <div class="checkout-section-label">Metode Pembayaran</div>
+        <div class="checkout-payment-methods" id="checkout-payment-methods">
+          <label class="payment-method-option">
+            <input type="radio" name="payment_method" value="Transfer BCA (1234567890 a.n. Sentraq)">
+            <span class="payment-method-label">
+              <span class="payment-method-name">Transfer BCA</span>
+              <span class="payment-method-detail">No Rek: 1234567890 a.n. Sentraq</span>
+            </span>
+          </label>
+          <label class="payment-method-option">
+            <input type="radio" name="payment_method" value="Transfer BRI (9876543210 a.n. Sentraq)">
+            <span class="payment-method-label">
+              <span class="payment-method-name">Transfer BRI</span>
+              <span class="payment-method-detail">No Rek: 9876543210 a.n. Sentraq</span>
+            </span>
+          </label>
+          <label class="payment-method-option">
+            <input type="radio" name="payment_method" value="GoPay (085716577307)">
+            <span class="payment-method-label">
+              <span class="payment-method-name">GoPay</span>
+              <span class="payment-method-detail">085716577307</span>
+            </span>
+          </label>
+          <label class="payment-method-option">
+            <input type="radio" name="payment_method" value="OVO (085716577307)">
+            <span class="payment-method-label">
+              <span class="payment-method-name">OVO</span>
+              <span class="payment-method-detail">085716577307</span>
+            </span>
+          </label>
+          <label class="payment-method-option">
+            <input type="radio" name="payment_method" value="DANA (085716577307)">
+            <span class="payment-method-label">
+              <span class="payment-method-name">DANA</span>
+              <span class="payment-method-detail">085716577307</span>
+            </span>
+          </label>
+        </div>
+
+        <div class="checkout-section-label">Catatan / Alamat <span style="font-weight:400;color:var(--text-3)">(opsional)</span></div>
+        <textarea class="checkout-notes" id="checkout-notes" placeholder="Alamat pengiriman atau catatan untuk penjual..." rows="3"></textarea>
+
+        <p class="checkout-error" id="checkout-error" style="display:none"></p>
+        <button class="btn btn-primary btn-full" id="checkout-submit-btn" style="margin-top:16px">Buat Pesanan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ORDER SUCCESS MODAL -->
+  <div class="checkout-modal" id="order-success-modal" role="dialog" aria-modal="true" aria-label="Pesanan berhasil">
+    <div class="product-modal-overlay" id="order-success-overlay"></div>
+    <div class="checkout-modal-box checkout-modal-box--success">
+      <div class="checkout-modal-inner">
+        <div class="order-success-icon" aria-hidden="true">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <h2 class="checkout-modal-title" style="text-align:center">Pesanan Berhasil!</h2>
+        <p class="order-success-number" id="order-success-number"></p>
+        <div class="order-success-instructions" id="order-success-instructions"></div>
+        <button class="btn btn-primary btn-full" id="order-success-done-btn" style="margin-top:20px">Selesai</button>
       </div>
     </div>
   </div>
