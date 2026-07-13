@@ -1690,6 +1690,21 @@
         btn.disabled = true;
         var res = await _sb.from('transactions').update({ payment_status: 'paid' }).eq('id', id);
         if (res.error) { showToast('Gagal: ' + res.error.message, 'error'); btn.disabled = false; return; }
+
+        // Kurangi stok produk yang ada di pesanan ini
+        var order = trx.find(function(t){ return t.id === id; });
+        if (order && Array.isArray(order.items)) {
+          for (var k = 0; k < order.items.length; k++) {
+            var it = order.items[k];
+            if (!it || !it.id) continue;
+            var prod = allProducts.find(function(p){ return p.id === it.id; }) || {};
+            var currentStock = typeof prod.stock === 'number' ? prod.stock : 1;
+            var nextStock = Math.max(0, currentStock - (parseInt(it.qty, 10) || 1));
+            var patch = nextStock === 0 ? { stock: 0, status: 'sold', available: false } : { stock: nextStock };
+            await _sb.from('products').update(patch).eq('id', it.id);
+          }
+        }
+
         // Also log to sales_log for compatibility
         try {
           await _sb.from('sales_log').insert([{
@@ -1701,6 +1716,7 @@
         } catch(e) {}
         showToast('Pesanan ditandai lunas');
         loadTransactionsData();
+        loadProductsTable();
       });
     });
     } catch (err) {

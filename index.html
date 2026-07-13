@@ -519,6 +519,16 @@
     <div class="cart-items" id="wishlist-items"></div>
   </div>
 
+  <!-- MY ORDERS PANEL -->
+  <div class="wishlist-popup" id="orders-panel" role="dialog" aria-modal="true" aria-label="Pesanan saya">
+    <div class="wishlist-popup-arrow" aria-hidden="true"></div>
+    <div class="cart-popup-header">
+      <span class="cart-popup-title">Pesanan Saya</span>
+      <button class="cart-close" id="orders-close" aria-label="Tutup pesanan saya">&times;</button>
+    </div>
+    <div class="cart-items" id="orders-items"></div>
+  </div>
+
   <!-- AUTH MODAL -->
   <div class="auth-modal" id="auth-modal" role="dialog" aria-modal="true" aria-label="Masuk atau daftar">
     <div class="product-modal-overlay" id="auth-modal-overlay"></div>
@@ -572,6 +582,7 @@
           <div class="auth-avatar-big" id="auth-avatar-big">U</div>
           <p class="auth-username" id="auth-username">Pengguna</p>
           <p class="auth-useremail" id="auth-useremail"></p>
+          <button class="btn btn-secondary btn-full" id="my-orders-btn" style="margin-bottom:8px">Pesanan Saya</button>
           <button class="btn btn-secondary btn-full" id="logout-btn">Keluar</button>
         </div>
       </div>

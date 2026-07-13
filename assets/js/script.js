@@ -72,6 +72,7 @@ document.addEventListener('DOMContentLoaded', function () {
   initAuth();
   initCheckoutModal();
   initWishlistPanel();
+  initOrdersPanel();
   updateWishlistBadge();
   loadProducts();
 });
@@ -1905,6 +1906,80 @@ function renderWishlistPanel() {
       toggleWishlist(btn.dataset.id);
     });
   });
+}
+
+/* ===== MY ORDERS PANEL ===== */
+var ORDER_STATUS_LABEL = { paid: 'Lunas', pending: 'Menunggu Pembayaran', cancelled: 'Dibatalkan' };
+
+function initOrdersPanel() {
+  var navBtn   = document.getElementById('my-orders-btn');
+  var closeBtn = document.getElementById('orders-close');
+
+  if (navBtn) navBtn.addEventListener('click', function() {
+    closeAuthModal();
+    openOrdersPanel();
+  });
+
+  if (closeBtn) closeBtn.addEventListener('click', closeOrdersPanel);
+
+  document.addEventListener('click', function(e) {
+    var panel = document.getElementById('orders-panel');
+    if (panel && panel.classList.contains('open') &&
+        !panel.contains(e.target) && e.target !== navBtn && (!navBtn || !navBtn.contains(e.target))) {
+      closeOrdersPanel();
+    }
+  });
+}
+
+function openOrdersPanel() {
+  closeCart();
+  closeWishlistPanel();
+  renderOrdersPanel();
+  var panel = document.getElementById('orders-panel');
+  if (panel) panel.classList.add('open');
+}
+
+function closeOrdersPanel() {
+  var panel = document.getElementById('orders-panel');
+  if (panel) panel.classList.remove('open');
+}
+
+async function renderOrdersPanel() {
+  var container = document.getElementById('orders-items');
+  if (!container) return;
+  var sb = window._sb;
+  if (!sb || !currentUser) return;
+
+  container.innerHTML = '<div class="cart-empty"><p>Memuat pesanan...</p></div>';
+
+  try {
+    var res = await sb.from('transactions').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
+    if (res.error) throw res.error;
+    var orders = res.data || [];
+
+    if (!orders.length) {
+      container.innerHTML = '<div class="cart-empty"><p>Belum ada pesanan</p></div>';
+      return;
+    }
+
+    container.innerHTML = orders.map(function(o) {
+      var itemSummary = Array.isArray(o.items) && o.items.length
+        ? o.items.map(function(i){ return i.name + (i.qty > 1 ? ' ×' + i.qty : ''); }).join(', ')
+        : '—';
+      var date = new Date(o.created_at).toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' });
+      var statusLabel = ORDER_STATUS_LABEL[o.payment_status] || o.payment_status;
+      return '<div class="wishlist-item">' +
+        '<div class="cart-item-info">' +
+          '<p class="cart-item-name">' + escapeHtml(o.order_number || '—') + '</p>' +
+          '<p class="cart-item-price" style="font-size:12px;color:var(--text-3);font-weight:400">' + escapeHtml(itemSummary) + '</p>' +
+          '<p class="cart-item-price">' + formatPrice(o.total || 0) + '</p>' +
+          '<p style="font-size:11px;margin-top:2px">' + date + ' &middot; <strong>' + escapeHtml(statusLabel) + '</strong></p>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  } catch (e) {
+    container.innerHTML = '<div class="cart-empty"><p>Gagal memuat pesanan.</p></div>';
+  }
 }
 
 /* ===== LAZY IMAGES ===== */
