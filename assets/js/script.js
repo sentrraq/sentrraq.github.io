@@ -1789,13 +1789,39 @@ async function handleCheckoutSubmit() {
       payment_status: 'pending',
       notes: notes,
       order_number: orderNumber
-    }]);
+    }]).select().single();
 
     if (res.error) throw res.error;
 
-    closeCheckoutModal();
-    closeCart();
-    openOrderSuccessModal(orderNumber, paymentMethod, total);
+    if (paymentMethod === 'Midtrans') {
+      var session = await sb.auth.getSession();
+      var accessToken = session.data.session ? session.data.session.access_token : null;
+      var fnRes = await fetch(window._sbUrl + '/functions/v1/midtrans-create-transaction', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + accessToken,
+          'apikey': window._sbAnonKey
+        },
+        body: JSON.stringify({ transaction_id: res.data.id })
+      });
+      var fnData = await fnRes.json();
+      if (!fnRes.ok || !fnData.token) throw new Error(fnData.error || 'Gagal membuat pembayaran online.');
+
+      closeCheckoutModal();
+      closeCart();
+
+      window.snap.pay(fnData.token, {
+        onSuccess: function () { openOrderSuccessModal(orderNumber, 'Midtrans (Lunas)', total); },
+        onPending: function () { openOrderSuccessModal(orderNumber, 'Midtrans (Menunggu Pembayaran)', total); },
+        onError: function () { showToast('Pembayaran gagal. Silakan coba lagi.'); },
+        onClose: function () { showToast('Pembayaran belum selesai. Cek "Pesanan Saya" untuk melanjutkan.'); }
+      });
+    } else {
+      closeCheckoutModal();
+      closeCart();
+      openOrderSuccessModal(orderNumber, paymentMethod, total);
+    }
   } catch(e) {
     if (errorEl) {
       errorEl.textContent = 'Gagal menyimpan pesanan: ' + (e.message || 'Coba lagi.');

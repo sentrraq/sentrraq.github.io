@@ -8,6 +8,8 @@ var SUPABASE_URL      = 'https://zaspvvbacffehxmnopmw.supabase.co';
 var SUPABASE_ANON_KEY = 'sb_publishable_FeO54UxpIN4gxRux_pUrsw_xhzAR5ax';
 
 window._sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+window._sbUrl = SUPABASE_URL;
+window._sbAnonKey = SUPABASE_ANON_KEY;
 
 function dispatchAuth(user) {
   window._authUser = user || null;

@@ -27,6 +27,7 @@
   <link rel="icon" type="image/png" href="assets/images/logo-icon.png">
   <link rel="stylesheet" href="assets/css/style.css?v=13">
   <script type="module" src="assets/js/supabase.js"></script>
+  <script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="Mid-client-1RT6sb6ZXXvlS0Yb"></script>
 </head>
 <body>
 
@@ -606,6 +607,13 @@
 
         <div class="checkout-section-label">Metode Pembayaran</div>
         <div class="checkout-payment-methods" id="checkout-payment-methods">
+          <label class="payment-method-option">
+            <input type="radio" name="payment_method" value="Midtrans" checked>
+            <span class="payment-method-label">
+              <span class="payment-method-name">Bayar Online</span>
+              <span class="payment-method-detail">Kartu, VA Bank, GoPay, QRIS, dll (via Midtrans)</span>
+            </span>
+          </label>
           <label class="payment-method-option">
             <input type="radio" name="payment_method" value="Transfer BCA (1234567890 a.n. Sentraq)">
             <span class="payment-method-label">
