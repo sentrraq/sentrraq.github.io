@@ -1750,14 +1750,8 @@ async function handleCheckoutSubmit() {
   var sb = window._sb;
   if (!sb || !currentUser) return;
 
-  var paymentMethodEl = document.querySelector('input[name="payment_method"]:checked');
   var errorEl = document.getElementById('checkout-error');
   var submitBtn = document.getElementById('checkout-submit-btn');
-
-  if (!paymentMethodEl) {
-    if (errorEl) { errorEl.textContent = 'Pilih metode pembayaran terlebih dahulu.'; errorEl.style.display = ''; }
-    return;
-  }
 
   if (errorEl) errorEl.style.display = 'none';
 
@@ -1771,7 +1765,7 @@ async function handleCheckoutSubmit() {
   });
 
   var total = ids.reduce(function(s, id) { return s + cart[id].product.price * cart[id].qty; }, 0);
-  var paymentMethod = paymentMethodEl.value;
+  var paymentMethod = 'Midtrans';
   var notes = (document.getElementById('checkout-notes') || {}).value || '';
   var orderNumber = 'SQ-' + Date.now().toString(36).slice(-6).toUpperCase();
   var displayName = (currentUser.user_metadata && currentUser.user_metadata.name) || currentUser.email || '';
@@ -1793,35 +1787,29 @@ async function handleCheckoutSubmit() {
 
     if (res.error) throw res.error;
 
-    if (paymentMethod === 'Midtrans') {
-      var session = await sb.auth.getSession();
-      var accessToken = session.data.session ? session.data.session.access_token : null;
-      var fnRes = await fetch(window._sbUrl + '/functions/v1/midtrans-create-transaction', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + accessToken,
-          'apikey': window._sbAnonKey
-        },
-        body: JSON.stringify({ transaction_id: res.data.id })
-      });
-      var fnData = await fnRes.json();
-      if (!fnRes.ok || !fnData.token) throw new Error(fnData.error || 'Gagal membuat pembayaran online.');
+    var session = await sb.auth.getSession();
+    var accessToken = session.data.session ? session.data.session.access_token : null;
+    var fnRes = await fetch(window._sbUrl + '/functions/v1/midtrans-create-transaction', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + accessToken,
+        'apikey': window._sbAnonKey
+      },
+      body: JSON.stringify({ transaction_id: res.data.id })
+    });
+    var fnData = await fnRes.json();
+    if (!fnRes.ok || !fnData.token) throw new Error(fnData.error || 'Gagal membuat pembayaran online.');
 
-      closeCheckoutModal();
-      closeCart();
+    closeCheckoutModal();
+    closeCart();
 
-      window.snap.pay(fnData.token, {
-        onSuccess: function () { openOrderSuccessModal(orderNumber, 'Midtrans (Lunas)', total); },
-        onPending: function () { openOrderSuccessModal(orderNumber, 'Midtrans (Menunggu Pembayaran)', total); },
-        onError: function () { showToast('Pembayaran gagal. Silakan coba lagi.'); },
-        onClose: function () { showToast('Pembayaran belum selesai. Cek "Pesanan Saya" untuk melanjutkan.'); }
-      });
-    } else {
-      closeCheckoutModal();
-      closeCart();
-      openOrderSuccessModal(orderNumber, paymentMethod, total);
-    }
+    window.snap.pay(fnData.token, {
+      onSuccess: function () { openOrderSuccessModal(orderNumber, 'Midtrans (Lunas)', total); },
+      onPending: function () { openOrderSuccessModal(orderNumber, 'Midtrans (Menunggu Pembayaran)', total); },
+      onError: function () { showToast('Pembayaran gagal. Silakan coba lagi.'); },
+      onClose: function () { showToast('Pembayaran belum selesai. Cek "Pesanan Saya" untuk melanjutkan.'); }
+    });
   } catch(e) {
     if (errorEl) {
       errorEl.textContent = 'Gagal menyimpan pesanan: ' + (e.message || 'Coba lagi.');
