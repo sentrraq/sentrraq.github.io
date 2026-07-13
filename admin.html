@@ -686,6 +686,18 @@
     document.getElementById('admin-shell').classList.add('hidden');
   }
 
+  async function verifyAdminAndShow(user) {
+    var profileCheck = await _sb.from('profiles').select('is_admin').eq('id', user.id).maybeSingle();
+    if (!profileCheck.data || !profileCheck.data.is_admin) {
+      await _sb.auth.signOut();
+      showLogin();
+      var errEl = document.getElementById('login-error');
+      if (errEl) { errEl.textContent = 'Akun ini tidak punya akses admin.'; errEl.style.display = 'block'; }
+      return;
+    }
+    showDashboard(user);
+  }
+
   function showDashboard(user) {
     document.getElementById('login-screen').classList.add('hidden');
     document.getElementById('admin-shell').classList.remove('hidden');
@@ -733,7 +745,7 @@
           : 'Gagal login: ' + result.error.message;
         errEl.style.display = 'block';
       } else {
-        showDashboard(result.data.user);
+        await verifyAdminAndShow(result.data.user);
       }
     } catch (err) {
       errEl.textContent = 'Gagal login: ' + (err && err.message ? err.message : 'koneksi terputus') + '. Cek koneksi internet dan coba lagi.';
@@ -1859,7 +1871,7 @@
     // Single source of truth for auth state
     _sb.auth.onAuthStateChange(function (event, session) {
       if (session) {
-        showDashboard(session.user);
+        verifyAdminAndShow(session.user);
       } else {
         showLogin();
       }
