@@ -302,6 +302,14 @@ function initDetailButtons() {
       if (product) openProductModal(product);
     });
   });
+
+  document.querySelectorAll('.card-title, .card-media').forEach(function (el) {
+    el.addEventListener('click', function (e) {
+      var id = el.dataset.id;
+      var product = allProducts.find(function (p) { return p.id === id; });
+      if (product) openProductModal(product);
+    });
+  });
 }
 
 /* ===== HERO CYCLE WORD ===== */
@@ -671,7 +679,7 @@ function buildCard(p) {
   var mediaHTML;
   if (!hasImages) {
     mediaHTML = [
-      '<div class="card-media" data-single>',
+      '<div class="card-media" data-single data-id="' + escapeHtml(p.id) + '">',
         '<div class="card-media-placeholder">',
           icon,
           '<span>' + safeCat + '</span>',
@@ -690,7 +698,7 @@ function buildCard(p) {
       ? '<button class="slider-prev" aria-label="Foto sebelumnya">&#8249;</button><button class="slider-next" aria-label="Foto berikutnya">&#8250;</button>'
       : '';
     mediaHTML = [
-      '<div class="card-media"' + (p.images.length <= 1 ? ' data-single' : '') + '>',
+      '<div class="card-media"' + (p.images.length <= 1 ? ' data-single' : '') + ' data-id="' + escapeHtml(p.id) + '">',
         '<div class="slider-track">' + slides + '</div>',
         arrowsHTML, dotsHTML,
       '</div>'
@@ -771,7 +779,7 @@ function buildCard(p) {
     mediaHTML,
     '<div class="card-body">',
       '<p class="card-category">' + safeCat + badge + conditionHTML + '</p>',
-      '<h3 class="card-title">' + safeName + '</h3>',
+      '<h3 class="card-title" data-id="' + escapeHtml(p.id) + '">' + safeName + '</h3>',
       '<p class="card-specs">' + safeSpecs + '</p>',
       safeDesc,
       priceRowHTML,
@@ -978,18 +986,6 @@ function initSliders() {
     });
 
     goTo(0);
-
-    /* Click on image → open lightbox */
-    if (media) {
-      media.addEventListener('click', function (e) {
-        if (e.target.tagName !== 'IMG' || !e.target.src) return;
-        var imgs = Array.from(slides).map(function (s) {
-          var img = s.querySelector('img');
-          return img ? (img.src || img.dataset.src || '') : '';
-        }).filter(Boolean);
-        if (imgs.length && window._openLightbox) window._openLightbox(imgs, cur);
-      });
-    }
   });
 }
 
