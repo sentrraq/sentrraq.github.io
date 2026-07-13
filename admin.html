@@ -251,6 +251,16 @@
         </div>
 
         <div class="settings-section">
+          <h3>Kelola Admin</h3>
+          <p>Jadikan akun (yang sudah pernah login/daftar di situs) sebagai admin.</p>
+          <div class="field">
+            <label for="make-admin-email">Email Pengguna</label>
+            <input id="make-admin-email" type="email" placeholder="email@contoh.com">
+          </div>
+          <button class="btn btn-primary btn-sm" id="btn-make-admin">Jadikan Admin</button>
+        </div>
+
+        <div class="settings-section">
           <h3>Zona Berbahaya</h3>
           <p>Tindakan berikut tidak dapat dibatalkan.</p>
           <button class="btn btn-danger btn-sm" id="btn-clear-all">Hapus Semua Produk</button>
@@ -1815,6 +1825,19 @@
     document.getElementById('new-pw').value     = '';
     document.getElementById('confirm-pw').value = '';
     showToast('Password berhasil diubah');
+  });
+
+  document.getElementById('btn-make-admin').addEventListener('click', async function () {
+    var email = document.getElementById('make-admin-email').value.trim();
+    if (!email) { showToast('Isi email dulu', 'error'); return; }
+    var result = await _sb.from('profiles').update({ is_admin: true }).eq('email', email).select();
+    if (result.error) { showToast('Gagal: ' + result.error.message, 'error'); return; }
+    if (!result.data || !result.data.length) {
+      showToast('Email tidak ditemukan. Orang itu harus login/daftar di situs dulu minimal sekali.', 'error');
+      return;
+    }
+    showToast(email + ' berhasil dijadikan admin');
+    document.getElementById('make-admin-email').value = '';
   });
 
   document.getElementById('btn-clear-all').addEventListener('click', async function () {
