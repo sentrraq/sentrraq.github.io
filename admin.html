@@ -561,6 +561,15 @@
         <button class="btn crop-ratio-btn" data-ratio="0" style="padding:4px 12px; font-size:12px; min-height:28px;">Bebas</button>
         <span id="crop-queue-info" style="margin-left:auto; font-size:12px; color:var(--text-muted);"></span>
       </div>
+      <div style="margin-top:8px; display:flex; align-items:center; gap:8px;">
+        <span style="font-size:12px; color:var(--text-muted); font-weight:500;">Putar:</span>
+        <button type="button" class="btn btn-secondary" id="crop-rotate-left-btn" style="padding:4px 10px; font-size:12px; min-height:28px;" aria-label="Putar kiri 90 derajat">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+        </button>
+        <button type="button" class="btn btn-secondary" id="crop-rotate-right-btn" style="padding:4px 10px; font-size:12px; min-height:28px;" aria-label="Putar kanan 90 derajat">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.13-9.36L23 10"/></svg>
+        </button>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" id="crop-skip-btn">Lewati</button>
@@ -1256,7 +1265,7 @@
         background: false,
         movable: true,
         zoomable: true,
-        rotatable: false,
+        rotatable: true,
       });
     };
   }
@@ -1312,6 +1321,13 @@
     });
   });
 
+  document.getElementById('crop-rotate-left-btn').addEventListener('click', function () {
+    if (cropperInst) cropperInst.rotate(-90);
+  });
+  document.getElementById('crop-rotate-right-btn').addEventListener('click', function () {
+    if (cropperInst) cropperInst.rotate(90);
+  });
+
   function handleFiles(files) {
     var remaining = 5 - existingImageUrls.length - pendingFiles.length;
     if (remaining <= 0) { showToast('Maksimal 5 foto', 'error'); return; }
@@ -1331,10 +1347,13 @@
     processNextInQueue();
   }
 
+  var ROTATE_ICON_SVG = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.13-9.36L23 10"/></svg>';
+
   function renderImagePreviews() {
     var existingHtml = existingImageUrls.map(function (url, i) {
       return '<div class="img-preview-item">' +
         '<img src="' + escHtml(url) + '" alt="" class="img-preview-thumb" title="Klik untuk preview">' +
+        '<button type="button" class="img-preview-rotate" data-type="existing" data-idx="' + i + '" aria-label="Putar foto">' + ROTATE_ICON_SVG + '</button>' +
         '<button type="button" class="img-preview-remove" data-type="existing" data-idx="' + i + '" aria-label="Hapus foto">&times;</button>' +
       '</div>';
     }).join('');
@@ -1342,13 +1361,62 @@
       return '<div class="img-preview-item img-preview-new">' +
         '<img src="' + escHtml(pf.preview) + '" alt="" class="img-preview-thumb" title="Klik untuk preview">' +
         '<div class="img-preview-badge">Baru</div>' +
+        '<button type="button" class="img-preview-rotate" data-type="pending" data-idx="' + i + '" aria-label="Putar foto">' + ROTATE_ICON_SVG + '</button>' +
         '<button type="button" class="img-preview-remove" data-type="pending" data-idx="' + i + '" aria-label="Hapus foto">&times;</button>' +
       '</div>';
     }).join('');
     document.getElementById('img-previews').innerHTML = existingHtml + pendingHtml;
   }
 
-  document.getElementById('img-previews').addEventListener('click', function (e) {
+  function rotateImageBlob(srcUrl, degrees) {
+    return new Promise(function (resolve, reject) {
+      var img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = function () {
+        var rad = degrees * Math.PI / 180;
+        var swap = Math.abs(degrees % 180) === 90;
+        var canvas = document.createElement('canvas');
+        canvas.width  = swap ? img.height : img.width;
+        canvas.height = swap ? img.width  : img.height;
+        var ctx = canvas.getContext('2d');
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.rotate(rad);
+        ctx.drawImage(img, -img.width / 2, -img.height / 2);
+        canvas.toBlob(function (blob) {
+          if (!blob) { reject(new Error('Gagal memutar gambar')); return; }
+          resolve(blob);
+        }, 'image/jpeg', 0.92);
+      };
+      img.onerror = function () { reject(new Error('Gagal memuat gambar')); };
+      img.src = srcUrl;
+    });
+  }
+
+  document.getElementById('img-previews').addEventListener('click', async function (e) {
+    var rotateBtn = e.target.closest('.img-preview-rotate');
+    if (rotateBtn) {
+      var ridx = parseInt(rotateBtn.dataset.idx, 10);
+      var rtype = rotateBtn.dataset.type;
+      rotateBtn.disabled = true;
+      try {
+        if (rtype === 'pending') {
+          var blob = await rotateImageBlob(pendingFiles[ridx].preview, 90);
+          URL.revokeObjectURL(pendingFiles[ridx].preview);
+          var newFile = new File([blob], pendingFiles[ridx].file.name, { type: 'image/jpeg' });
+          pendingFiles[ridx] = { file: newFile, preview: URL.createObjectURL(newFile) };
+        } else {
+          var blob2 = await rotateImageBlob(existingImageUrls[ridx], 90);
+          var rotatedFile = new File([blob2], 'rotated-' + Date.now() + '.jpg', { type: 'image/jpeg' });
+          existingImageUrls.splice(ridx, 1);
+          pendingFiles.push({ file: rotatedFile, preview: URL.createObjectURL(rotatedFile) });
+        }
+        renderImagePreviews();
+      } catch (err) {
+        showToast('Gagal memutar gambar: ' + err.message, 'error');
+        rotateBtn.disabled = false;
+      }
+      return;
+    }
     var btn = e.target.closest('.img-preview-remove');
     if (btn) {
       var idx = parseInt(btn.dataset.idx, 10);
