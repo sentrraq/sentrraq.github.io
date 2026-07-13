@@ -4,8 +4,8 @@
  */
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
-var SUPABASE_URL      = 'https://sytaqvoegmbaorcuvpqx.supabase.co';
-var SUPABASE_ANON_KEY = 'sb_publishable_2BUtNoHrQEaMjxUwolHbqg_uvqsIG9U';
+var SUPABASE_URL      = 'https://zaspvvbacffehxmnopmw.supabase.co';
+var SUPABASE_ANON_KEY = 'sb_publishable_FeO54UxpIN4gxRux_pUrsw_xhzAR5ax';
 
 window._sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 

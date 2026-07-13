@@ -725,14 +725,21 @@
     errEl.style.display = 'none';
 
     setLoginLoading(true);
-    var result = await _sb.auth.signInWithPassword({ email: email, password: pw });
-    setLoginLoading(false);
-
-    if (result.error) {
-      errEl.textContent = 'Email atau password salah. Coba lagi.';
+    try {
+      var result = await _sb.auth.signInWithPassword({ email: email, password: pw });
+      if (result.error) {
+        errEl.textContent = result.error.message === 'Invalid login credentials'
+          ? 'Email atau password salah. Coba lagi.'
+          : 'Gagal login: ' + result.error.message;
+        errEl.style.display = 'block';
+      } else {
+        showDashboard(result.data.user);
+      }
+    } catch (err) {
+      errEl.textContent = 'Gagal login: ' + (err && err.message ? err.message : 'koneksi terputus') + '. Cek koneksi internet dan coba lagi.';
       errEl.style.display = 'block';
-    } else {
-      showDashboard(result.data.user);
+    } finally {
+      setLoginLoading(false);
     }
   });
 
@@ -808,16 +815,20 @@
   /* ── TABLE ── */
   async function loadProductsTable() {
     setTableLoading(true);
-    var result = await _sb.from('products').select('*').eq('archived', false).order('created_at', { ascending: false });
-    setTableLoading(false);
-
-    if (result.error) {
-      showToast('Gagal memuat produk: ' + result.error.message, 'error');
-      return;
+    try {
+      var result = await _sb.from('products').select('*').eq('archived', false).order('created_at', { ascending: false });
+      if (result.error) {
+        showToast('Gagal memuat produk: ' + result.error.message, 'error');
+        return;
+      }
+      allProducts = result.data || [];
+      updateStats(allProducts);
+      renderTable(allProducts);
+    } catch (err) {
+      showToast('Gagal memuat produk: ' + (err && err.message ? err.message : 'koneksi terputus'), 'error');
+    } finally {
+      setTableLoading(false);
     }
-    allProducts = result.data || [];
-    updateStats(allProducts);
-    renderTable(allProducts);
   }
 
   function setTableLoading(on) {
@@ -942,33 +953,38 @@
 
   async function loadArchivedProducts() {
     setTableLoading(true);
-    var result = await _sb.from('products').select('*').eq('archived', true).order('created_at', { ascending: false });
-    setTableLoading(false);
-    if (result.error) { showToast('Gagal memuat arsip: ' + result.error.message, 'error'); return; }
-    var archived = result.data || [];
-    var tbody = document.getElementById('product-tbody');
-    if (!archived.length) {
-      tbody.innerHTML = '<tr class="empty-row"><td colspan="6">Tidak ada produk di arsip.</td></tr>';
-      return;
+    try {
+      var result = await _sb.from('products').select('*').eq('archived', true).order('created_at', { ascending: false });
+      if (result.error) { showToast('Gagal memuat arsip: ' + result.error.message, 'error'); return; }
+      var archived = result.data || [];
+      var tbody = document.getElementById('product-tbody');
+      if (!archived.length) {
+        tbody.innerHTML = '<tr class="empty-row"><td colspan="6">Tidak ada produk di arsip.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = archived.map(function(p) {
+        var imgHtml = (p.images && p.images.length)
+          ? '<img class="td-img" src="' + escHtml(p.images[0]) + '" alt="" loading="lazy">'
+          : '<div class="td-img-placeholder"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>';
+        return '<tr style="opacity:0.7">' +
+          '<td>' + imgHtml + '</td>' +
+          '<td><div class="td-name">' + escHtml(p.name) + '</div><div class="td-spec">' + escHtml(p.specs || '') + '</div></td>' +
+          '<td class="hide-sm"><span class="badge badge-' + escHtml(p.category) + '">' + escHtml(capFirst(p.category)) + '</span></td>' +
+          '<td class="td-price hide-sm">' + formatRp(p.price) + '</td>' +
+          '<td><span class="badge badge-sold">Diarsipkan</span></td>' +
+          '<td><div class="td-actions">' +
+            '<button class="btn btn-secondary btn-sm btn-restore-prod" data-id="' + escHtml(p.id) + '">Pulihkan</button>' +
+          '</div></td>' +
+        '</tr>';
+      }).join('');
+      tbody.querySelectorAll('.btn-restore-prod').forEach(function(btn) {
+        btn.addEventListener('click', function() { restoreProduct(this.dataset.id); });
+      });
+    } catch (err) {
+      showToast('Gagal memuat arsip: ' + (err && err.message ? err.message : 'koneksi terputus'), 'error');
+    } finally {
+      setTableLoading(false);
     }
-    tbody.innerHTML = archived.map(function(p) {
-      var imgHtml = (p.images && p.images.length)
-        ? '<img class="td-img" src="' + escHtml(p.images[0]) + '" alt="" loading="lazy">'
-        : '<div class="td-img-placeholder"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>';
-      return '<tr style="opacity:0.7">' +
-        '<td>' + imgHtml + '</td>' +
-        '<td><div class="td-name">' + escHtml(p.name) + '</div><div class="td-spec">' + escHtml(p.specs || '') + '</div></td>' +
-        '<td class="hide-sm"><span class="badge badge-' + escHtml(p.category) + '">' + escHtml(capFirst(p.category)) + '</span></td>' +
-        '<td class="td-price hide-sm">' + formatRp(p.price) + '</td>' +
-        '<td><span class="badge badge-sold">Diarsipkan</span></td>' +
-        '<td><div class="td-actions">' +
-          '<button class="btn btn-secondary btn-sm btn-restore-prod" data-id="' + escHtml(p.id) + '">Pulihkan</button>' +
-        '</div></td>' +
-      '</tr>';
-    }).join('');
-    tbody.querySelectorAll('.btn-restore-prod').forEach(function(btn) {
-      btn.addEventListener('click', function() { restoreProduct(this.dataset.id); });
-    });
   }
 
   async function restoreProduct(id) {
@@ -1336,13 +1352,13 @@
 
   async function loadHistoryData() {
     document.getElementById('history-loading').style.display = 'flex';
+    try {
     var filterType = document.getElementById('history-type-filter').value;
 
     var query = _sb.from('product_history').select('*').order('changed_at', { ascending: false }).limit(200);
     if (filterType) query = query.eq('event_type', filterType);
 
     var result = await query;
-    document.getElementById('history-loading').style.display = 'none';
 
     if (result.error) { showToast('Gagal memuat riwayat: ' + result.error.message, 'error'); return; }
 
@@ -1402,6 +1418,11 @@
         + '</button>'
         + '</div>';
     }).join('');
+    } catch (err) {
+      showToast('Gagal memuat riwayat: ' + (err && err.message ? err.message : 'koneksi terputus'), 'error');
+    } finally {
+      document.getElementById('history-loading').style.display = 'none';
+    }
   }
 
   document.getElementById('history-type-filter').addEventListener('change', function() {
@@ -1591,6 +1612,7 @@
   async function loadTransactionsData() {
     var loadingEl = document.getElementById('trx-loading');
     if (loadingEl) loadingEl.style.display = 'flex';
+    try {
 
     // Populate year dropdown
     var yearSel = document.getElementById('trx-year-filter');
@@ -1605,7 +1627,6 @@
     }
 
     var result = await _sb.from('transactions').select('*').order('created_at', { ascending: false });
-    if (loadingEl) loadingEl.style.display = 'none';
     if (result.error) { showToast('Gagal memuat transaksi: ' + result.error.message, 'error'); return; }
 
     var allTrx = result.data || [];
@@ -1682,6 +1703,11 @@
         loadTransactionsData();
       });
     });
+    } catch (err) {
+      showToast('Gagal memuat transaksi: ' + (err && err.message ? err.message : 'koneksi terputus'), 'error');
+    } finally {
+      if (loadingEl) loadingEl.style.display = 'none';
+    }
   }
 
   // Bind transaction filter selects
@@ -1698,9 +1724,9 @@
     var tbody     = document.getElementById('kons-tbody');
     if (loadingEl) loadingEl.style.display = 'flex';
     if (emptyEl)   emptyEl.style.display   = 'none';
+    try {
 
     var result = await _sb.from('profiles').select('*').order('created_at', { ascending: false });
-    if (loadingEl) loadingEl.style.display = 'none';
 
     if (result.error) {
       if (emptyEl) { emptyEl.style.display = ''; emptyEl.textContent = 'Belum ada konsumen terdaftar. Pastikan tabel profiles sudah dibuat di Supabase.'; }
@@ -1741,6 +1767,11 @@
         '<td style="text-align:right"><a href="mailto:' + escHtml(p.email||'') + '" class="btn btn-secondary btn-sm">Email</a></td>' +
       '</tr>';
     }).join('');
+    } catch (err) {
+      if (emptyEl) { emptyEl.style.display = ''; emptyEl.textContent = 'Gagal memuat konsumen: ' + (err && err.message ? err.message : 'koneksi terputus'); }
+    } finally {
+      if (loadingEl) loadingEl.style.display = 'none';
+    }
   }
 
   /* ── SETTINGS ── */
