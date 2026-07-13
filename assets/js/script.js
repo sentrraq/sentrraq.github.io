@@ -190,13 +190,15 @@ function openProductModal(p) {
   }
 
   var cartBtnHTML;
+  var buyNowBtnHTML = '';
   if (isSold || stock <= 0) {
     cartBtnHTML = '<button class="btn btn-primary btn-full" disabled>Terjual</button>';
   } else if (isOnHold) {
     cartBtnHTML = '<button class="btn btn-secondary btn-full" disabled>Sedang Ditahan</button>';
   } else {
     var inCart = !!cart[p.id];
-    cartBtnHTML = '<button class="btn btn-primary btn-full btn-modal-add-cart" data-id="' + escapeHtml(p.id) + '">' + (inCart ? 'Sudah di Keranjang' : 'Tambah ke Keranjang') + '</button>';
+    buyNowBtnHTML = '<button class="btn btn-primary btn-full btn-modal-buy-now" data-id="' + escapeHtml(p.id) + '">Beli Sekarang</button>';
+    cartBtnHTML = '<button class="btn btn-secondary btn-full btn-modal-add-cart" data-id="' + escapeHtml(p.id) + '">' + (inCart ? 'Sudah di Keranjang' : 'Tambah ke Keranjang') + '</button>';
   }
 
   var specsLine = p.specs ? '\nSpesifikasi: ' + p.specs : '';
@@ -220,7 +222,7 @@ function openProductModal(p) {
         origHTML + savingsHTML +
       '</div>' +
       '<div class="product-modal-stock">' + stockHTML + '</div>' +
-      '<div class="product-modal-actions">' + cartBtnHTML + waHTML + '</div>' +
+      '<div class="product-modal-actions">' + buyNowBtnHTML + cartBtnHTML + waHTML + '</div>' +
     '</div>';
 
   var addBtn = content.querySelector('.btn-modal-add-cart');
@@ -237,6 +239,22 @@ function openProductModal(p) {
       flyToCart(addBtn, function () { addToCart(p); });
       addBtn.textContent = 'Sudah di Keranjang';
       addBtn.disabled = true;
+    });
+  }
+
+  var buyNowBtn = content.querySelector('.btn-modal-buy-now');
+  if (buyNowBtn) {
+    buyNowBtn.addEventListener('click', function () {
+      if (!currentUser) {
+        pendingCartProduct = p;
+        showToast('Silakan masuk untuk melanjutkan pembelian');
+        closeProductModal();
+        openAuthModal();
+        return;
+      }
+      if (!cart[p.id]) addToCart(p);
+      closeProductModal();
+      openCheckoutModal();
     });
   }
 
@@ -721,7 +739,10 @@ function buildCard(p) {
   } else if (isOnHold) {
     ctaBtn = '<button class="btn btn-secondary btn-full btn-sm" disabled>Sedang Ditahan</button>';
   } else {
-    ctaBtn = '<button class="btn btn-primary btn-full btn-sm btn-add-cart" data-id="' + escapeHtml(p.id) + '" type="button">Tambah ke Keranjang</button>';
+    ctaBtn = '<div class="card-cta-row">' +
+      '<button class="btn btn-primary btn-sm btn-buy-now" data-id="' + escapeHtml(p.id) + '" type="button">Beli Sekarang</button>' +
+      '<button class="btn btn-secondary btn-sm btn-add-cart" data-id="' + escapeHtml(p.id) + '" type="button">Tambah ke Keranjang</button>' +
+    '</div>';
   }
   var conditionHTML = p.condition
     ? '<span class="card-condition card-condition--' + escapeHtml(p.condition.toLowerCase().replace(/\s+/g,'-')) + '">' + escapeHtml(p.condition) + '</span>'
@@ -786,6 +807,7 @@ function renderProducts(products) {
 
   initSliders();
   initAddToCartButtons();
+  initBuyNowButtons();
   initWishlistButtons();
   initShareButtons();
   initDetailButtons();
@@ -1212,6 +1234,29 @@ function initAddToCartButtons() {
         btn.textContent = cart[id] ? 'Sudah di Keranjang' : 'Tambah ke Keranjang';
         btn.disabled = !!cart[id];
       }, 900);
+    });
+  });
+}
+
+/* ===== BUY NOW BUTTONS ===== */
+function initBuyNowButtons() {
+  document.querySelectorAll('.btn-buy-now').forEach(function (btn) {
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      var id = btn.dataset.id;
+      var product = allProducts.find(function (p) { return p.id === id; });
+      if (!product) return;
+
+      if (!currentUser) {
+        pendingCartProduct = product;
+        showToast('Silakan masuk untuk melanjutkan pembelian');
+        openAuthModal();
+        return;
+      }
+
+      if (!cart[id]) addToCart(product);
+      openCheckoutModal();
     });
   });
 }

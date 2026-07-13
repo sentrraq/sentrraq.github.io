@@ -1740,6 +1740,12 @@ ul, ol { list-style: none; }
   gap: 8px; margin-top: 10px;
 }
 
+/* ===== CARD CTA ROW (Beli Sekarang + Tambah ke Keranjang) ===== */
+.card-cta-row {
+  display: flex; gap: 8px;
+}
+.card-cta-row .btn { flex: 1; min-width: 0; }
+
 /* ===== USER AVATAR (NAVBAR) ===== */
 .navbar-user-avatar {
   position: relative;
