@@ -318,6 +318,19 @@
           </div>
         </div>
 
+        <div class="trx-action-row">
+          <div class="trx-quick-filters">
+            <button type="button" class="quick-filter-btn" id="qf-pending" data-qf="pending">Menunggu Pembayaran</button>
+            <button type="button" class="quick-filter-btn" id="qf-paid" data-qf="paid">Lunas</button>
+          </div>
+          <div class="trx-bulk-actions">
+            <button type="button" class="btn btn-danger btn-sm" id="btn-delete-all-pending">Hapus Semua Menunggu</button>
+            <button type="button" class="btn btn-danger btn-sm" id="btn-delete-all-cancelled">Hapus Semua Dibatalkan</button>
+          </div>
+        </div>
+
+        <div class="trx-filter-summary" id="trx-filter-summary" style="display:none"></div>
+
         <div class="table-wrap">
           <div id="trx-loading" class="table-loading" style="display:none">
             <div class="spinner"></div>
@@ -731,6 +744,7 @@
     var opts = document.querySelectorAll('.custom-select-option');
     opts.forEach(function(o) { o.classList.toggle('active', o.dataset.value === ''); });
     loadProductsTable();
+    autoCleanupAbandonedOrders();
   }
 
   function setLoginLoading(on) {
@@ -1570,7 +1584,7 @@
           menu.querySelectorAll('.cselect-opt').forEach(function(o) { o.classList.remove('active'); });
           item.classList.add('active');
           wrapper.classList.remove('open');
-          nat.dispatchEvent(new Event('change'));
+          nat.dispatchEvent(new Event('change', { bubbles: true }));
         });
         menu.appendChild(item);
       });
@@ -1740,6 +1754,21 @@
     document.getElementById('trx-pending-count').textContent = allTrx.filter(function(t){ return t.payment_status === 'pending'; }).length;
     document.getElementById('trx-paid-count').textContent    = allTrx.filter(function(t){ return t.payment_status === 'paid'; }).length;
 
+    // Sync quick-filter button active state with current status filter
+    document.getElementById('qf-pending').classList.toggle('active', statusFilter === 'pending');
+    document.getElementById('qf-paid').classList.toggle('active', statusFilter === 'paid');
+
+    // Total nominal dari filter yang sedang aktif
+    var summaryEl = document.getElementById('trx-filter-summary');
+    var isFiltered = !!(statusFilter || monthFilter || yearFilter);
+    if (isFiltered) {
+      var sumFiltered = trx.reduce(function(s,t){ return s + (t.total||0); }, 0);
+      summaryEl.textContent = 'Total dari filter aktif: ' + formatRp(sumFiltered) + ' · ' + trx.length + ' transaksi';
+      summaryEl.style.display = 'block';
+    } else {
+      summaryEl.style.display = 'none';
+    }
+
     var tbody = document.getElementById('trx-tbody');
     if (!trx.length) {
       tbody.innerHTML = '<tr class="empty-row"><td colspan="8">Belum ada transaksi.</td></tr>';
@@ -1760,6 +1789,7 @@
       var markBtn = t.payment_status === 'pending'
         ? '<button class="btn btn-primary btn-sm btn-mark-paid" data-id="' + escHtml(t.id) + '" data-order="' + escHtml(t.order_number||'') + '" data-total="' + (t.total||0) + '" data-name="' + escHtml(t.user_name||t.user_email||'') + '">Tandai Lunas</button>'
         : '';
+      var deleteBtn = '<button class="btn btn-danger btn-sm btn-delete-trx" data-id="' + escHtml(t.id) + '" data-order="' + escHtml(t.order_number||'') + '">Hapus</button>';
       return '<tr>' +
         '<td><span style="font-size:12px;font-weight:700;color:var(--accent)">' + escHtml(t.order_number || '—') + '</span></td>' +
         '<td><div class="td-name">' + escHtml(t.user_name || '—') + '</div><div class="td-spec">' + escHtml(t.user_email || '') + '</div></td>' +
@@ -1768,9 +1798,22 @@
         '<td class="hide-sm"><div class="td-spec" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escHtml(t.payment_method || '—') + '</div></td>' +
         '<td>' + statusBadge + '</td>' +
         '<td class="hide-sm">' + date + '</td>' +
-        '<td><div class="td-actions">' + markBtn + '</div></td>' +
+        '<td><div class="td-actions">' + markBtn + deleteBtn + '</div></td>' +
       '</tr>';
     }).join('');
+
+    // Bind "Hapus" buttons
+    tbody.querySelectorAll('.btn-delete-trx').forEach(function(btn) {
+      btn.addEventListener('click', async function() {
+        var id = btn.dataset.id;
+        if (!confirm('Hapus pesanan ' + btn.dataset.order + '? Tindakan ini tidak dapat dibatalkan.')) return;
+        btn.disabled = true;
+        var res = await _sb.from('transactions').delete().eq('id', id);
+        if (res.error) { showToast('Gagal: ' + res.error.message, 'error'); btn.disabled = false; return; }
+        showToast('Pesanan ' + btn.dataset.order + ' dihapus');
+        loadTransactionsData();
+      });
+    });
 
     // Bind "Tandai Lunas" buttons
     tbody.querySelectorAll('.btn-mark-paid').forEach(function(btn) {
@@ -1822,6 +1865,54 @@
       loadTransactionsData();
     }
   });
+
+  // Quick-filter buttons (Menunggu Pembayaran / Lunas)
+  document.querySelectorAll('.quick-filter-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var statusSel = document.getElementById('trx-status-filter');
+      var target = btn.classList.contains('active') ? '' : btn.dataset.qf;
+      statusSel.value = target;
+      syncCustomSelect('trx-status-filter');
+      loadTransactionsData();
+    });
+  });
+
+  // Hapus semua transaksi "Menunggu"
+  document.getElementById('btn-delete-all-pending').addEventListener('click', async function() {
+    var result = await _sb.from('transactions').select('id').eq('payment_status', 'pending');
+    if (result.error) { showToast('Gagal: ' + result.error.message, 'error'); return; }
+    var count = (result.data || []).length;
+    if (!count) { showToast('Tidak ada transaksi Menunggu untuk dihapus', 'info'); return; }
+    if (!confirm('Hapus semua ' + count + ' transaksi berstatus Menunggu? Tindakan ini tidak dapat dibatalkan.')) return;
+    var res = await _sb.from('transactions').delete().eq('payment_status', 'pending');
+    if (res.error) { showToast('Gagal: ' + res.error.message, 'error'); return; }
+    showToast(count + ' transaksi Menunggu dihapus');
+    loadTransactionsData();
+  });
+
+  // Hapus semua transaksi "Dibatalkan"
+  document.getElementById('btn-delete-all-cancelled').addEventListener('click', async function() {
+    var result = await _sb.from('transactions').select('id').eq('payment_status', 'cancelled');
+    if (result.error) { showToast('Gagal: ' + result.error.message, 'error'); return; }
+    var count = (result.data || []).length;
+    if (!count) { showToast('Tidak ada transaksi Dibatalkan untuk dihapus', 'info'); return; }
+    if (!confirm('Hapus semua ' + count + ' transaksi berstatus Dibatalkan? Tindakan ini tidak dapat dibatalkan.')) return;
+    var res = await _sb.from('transactions').delete().eq('payment_status', 'cancelled');
+    if (res.error) { showToast('Gagal: ' + res.error.message, 'error'); return; }
+    showToast(count + ' transaksi Dibatalkan dihapus');
+    loadTransactionsData();
+  });
+
+  // Auto-hapus draft pending yang dibiarkan >24 jam tanpa pembayaran
+  async function autoCleanupAbandonedOrders() {
+    try {
+      var cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      var res = await _sb.from('transactions').delete().eq('payment_status', 'pending').lt('created_at', cutoff).select('id');
+      if (res.error) return;
+      var count = (res.data || []).length;
+      if (count > 0) showToast(count + ' pesanan draft (>24 jam) dihapus otomatis', 'info');
+    } catch (e) {}
+  }
 
   /* ── KONSUMEN ── */
   async function loadKonsumenData() {
