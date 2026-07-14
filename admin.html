@@ -311,21 +311,11 @@
             <select class="history-filter-select" id="trx-year-filter">
               <option value="">Semua Tahun</option>
             </select>
+            <button class="btn btn-primary btn-sm" id="btn-run-trx-filter">Terapkan Filter</button>
             <button class="btn btn-secondary btn-sm" id="btn-print-finance">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
               Cetak PDF
             </button>
-          </div>
-        </div>
-
-        <div class="trx-action-row">
-          <div class="trx-quick-filters">
-            <button type="button" class="quick-filter-btn" id="qf-pending" data-qf="pending">Menunggu Pembayaran</button>
-            <button type="button" class="quick-filter-btn" id="qf-paid" data-qf="paid">Lunas</button>
-          </div>
-          <div class="trx-bulk-actions">
-            <button type="button" class="btn btn-danger btn-sm" id="btn-delete-all-pending">Hapus Semua Menunggu</button>
-            <button type="button" class="btn btn-danger btn-sm" id="btn-delete-all-cancelled">Hapus Semua Dibatalkan</button>
           </div>
         </div>
 
@@ -1754,10 +1744,6 @@
     document.getElementById('trx-pending-count').textContent = allTrx.filter(function(t){ return t.payment_status === 'pending'; }).length;
     document.getElementById('trx-paid-count').textContent    = allTrx.filter(function(t){ return t.payment_status === 'paid'; }).length;
 
-    // Sync quick-filter button active state with current status filter
-    document.getElementById('qf-pending').classList.toggle('active', statusFilter === 'pending');
-    document.getElementById('qf-paid').classList.toggle('active', statusFilter === 'paid');
-
     // Total nominal dari filter yang sedang aktif
     var summaryEl = document.getElementById('trx-filter-summary');
     var isFiltered = !!(statusFilter || monthFilter || yearFilter);
@@ -1866,40 +1852,8 @@
     }
   });
 
-  // Quick-filter buttons (Menunggu Pembayaran / Lunas)
-  document.querySelectorAll('.quick-filter-btn').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      var statusSel = document.getElementById('trx-status-filter');
-      var target = btn.classList.contains('active') ? '' : btn.dataset.qf;
-      statusSel.value = target;
-      syncCustomSelect('trx-status-filter');
-      loadTransactionsData();
-    });
-  });
-
-  // Hapus semua transaksi "Menunggu"
-  document.getElementById('btn-delete-all-pending').addEventListener('click', async function() {
-    var result = await _sb.from('transactions').select('id').eq('payment_status', 'pending');
-    if (result.error) { showToast('Gagal: ' + result.error.message, 'error'); return; }
-    var count = (result.data || []).length;
-    if (!count) { showToast('Tidak ada transaksi Menunggu untuk dihapus', 'info'); return; }
-    if (!confirm('Hapus semua ' + count + ' transaksi berstatus Menunggu? Tindakan ini tidak dapat dibatalkan.')) return;
-    var res = await _sb.from('transactions').delete().eq('payment_status', 'pending');
-    if (res.error) { showToast('Gagal: ' + res.error.message, 'error'); return; }
-    showToast(count + ' transaksi Menunggu dihapus');
-    loadTransactionsData();
-  });
-
-  // Hapus semua transaksi "Dibatalkan"
-  document.getElementById('btn-delete-all-cancelled').addEventListener('click', async function() {
-    var result = await _sb.from('transactions').select('id').eq('payment_status', 'cancelled');
-    if (result.error) { showToast('Gagal: ' + result.error.message, 'error'); return; }
-    var count = (result.data || []).length;
-    if (!count) { showToast('Tidak ada transaksi Dibatalkan untuk dihapus', 'info'); return; }
-    if (!confirm('Hapus semua ' + count + ' transaksi berstatus Dibatalkan? Tindakan ini tidak dapat dibatalkan.')) return;
-    var res = await _sb.from('transactions').delete().eq('payment_status', 'cancelled');
-    if (res.error) { showToast('Gagal: ' + res.error.message, 'error'); return; }
-    showToast(count + ' transaksi Dibatalkan dihapus');
+  // Tombol "Terapkan Filter"
+  document.getElementById('btn-run-trx-filter').addEventListener('click', function() {
     loadTransactionsData();
   });
 
