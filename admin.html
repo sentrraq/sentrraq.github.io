@@ -312,6 +312,9 @@
               <option value="">Semua Tahun</option>
             </select>
             <button class="btn btn-primary btn-sm" id="btn-run-trx-filter">Terapkan Filter</button>
+            <button class="btn btn-secondary btn-sm" id="btn-seed-sample-trx" title="Buat 3 transaksi contoh (Lunas/Menunggu/Dibatalkan) untuk uji coba filter">
+              Buat Data Sampel
+            </button>
             <button class="btn btn-secondary btn-sm" id="btn-print-finance">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
               Cetak PDF
@@ -1772,9 +1775,12 @@
         ? '<span class="badge badge-sold">Dibatalkan</span>'
         : '<span class="badge badge-hold">Menunggu</span>';
       var date = new Date(t.created_at).toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' });
-      var markBtn = t.payment_status === 'pending'
-        ? '<button class="btn btn-primary btn-sm btn-mark-paid" data-id="' + escHtml(t.id) + '" data-order="' + escHtml(t.order_number||'') + '" data-total="' + (t.total||0) + '" data-name="' + escHtml(t.user_name||t.user_email||'') + '">Tandai Lunas</button>'
-        : '';
+      var TRX_STATUS_LABELS = { pending: 'Menunggu', paid: 'Lunas', cancelled: 'Dibatalkan' };
+      var statusSelect = '<select class="trx-status-select" data-id="' + escHtml(t.id) + '" data-order="' + escHtml(t.order_number||'') + '" data-total="' + (t.total||0) + '" data-name="' + escHtml(t.user_name||t.user_email||'') + '" data-old="' + escHtml(t.payment_status||'pending') + '">' +
+        Object.keys(TRX_STATUS_LABELS).map(function(s) {
+          return '<option value="' + s + '"' + (s === t.payment_status ? ' selected' : '') + '>' + TRX_STATUS_LABELS[s] + '</option>';
+        }).join('') +
+        '</select>';
       var deleteBtn = '<button class="btn btn-danger btn-sm btn-delete-trx" data-id="' + escHtml(t.id) + '" data-order="' + escHtml(t.order_number||'') + '">Hapus</button>';
       return '<tr>' +
         '<td><span style="font-size:12px;font-weight:700;color:var(--accent)">' + escHtml(t.order_number || '—') + '</span></td>' +
@@ -1784,7 +1790,7 @@
         '<td class="hide-sm"><div class="td-spec" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escHtml(t.payment_method || '—') + '</div></td>' +
         '<td>' + statusBadge + '</td>' +
         '<td class="hide-sm">' + date + '</td>' +
-        '<td><div class="td-actions">' + markBtn + deleteBtn + '</div></td>' +
+        '<td><div class="td-actions">' + statusSelect + deleteBtn + '</div></td>' +
       '</tr>';
     }).join('');
 
@@ -1801,18 +1807,27 @@
       });
     });
 
-    // Bind "Tandai Lunas" buttons
-    tbody.querySelectorAll('.btn-mark-paid').forEach(function(btn) {
-      btn.addEventListener('click', async function() {
-        var id = btn.dataset.id;
-        if (!confirm('Tandai pesanan ' + btn.dataset.order + ' sebagai lunas?')) return;
-        btn.disabled = true;
-        var res = await _sb.from('transactions').update({ payment_status: 'paid' }).eq('id', id);
-        if (res.error) { showToast('Gagal: ' + res.error.message, 'error'); btn.disabled = false; return; }
+    // Bind status dropdowns (ubah status manual: Menunggu / Lunas / Dibatalkan)
+    var TRX_STATUS_LABELS2 = { pending: 'Menunggu', paid: 'Lunas', cancelled: 'Dibatalkan' };
+    tbody.querySelectorAll('.trx-status-select').forEach(function(sel) {
+      sel.addEventListener('change', async function() {
+        var id       = sel.dataset.id;
+        var oldStatus = sel.dataset.old;
+        var newStatus = sel.value;
+        if (newStatus === oldStatus) return;
 
-        // Kurangi stok produk yang ada di pesanan ini
+        if (!confirm('Ubah status pesanan ' + sel.dataset.order + ' menjadi "' + TRX_STATUS_LABELS2[newStatus] + '"?')) {
+          sel.value = oldStatus;
+          return;
+        }
+        sel.disabled = true;
+        var res = await _sb.from('transactions').update({ payment_status: newStatus }).eq('id', id);
+        if (res.error) { showToast('Gagal: ' + res.error.message, 'error'); sel.value = oldStatus; sel.disabled = false; return; }
+
         var order = trx.find(function(t){ return t.id === id; });
-        if (order && Array.isArray(order.items)) {
+
+        // Baru jadi lunas (dari status lain) → kurangi stok produk
+        if (newStatus === 'paid' && oldStatus !== 'paid' && order && Array.isArray(order.items)) {
           for (var k = 0; k < order.items.length; k++) {
             var it = order.items[k];
             if (!it || !it.id) continue;
@@ -1822,18 +1837,31 @@
             var patch = nextStock === 0 ? { stock: 0, status: 'sold', available: false } : { stock: nextStock };
             await _sb.from('products').update(patch).eq('id', it.id);
           }
+          try {
+            await _sb.from('sales_log').insert([{
+              product_name: sel.dataset.name + ' — ' + sel.dataset.order,
+              product_price: parseInt(sel.dataset.total, 10) || 0,
+              actual_price: parseInt(sel.dataset.total, 10) || 0,
+              sold_at: new Date().toISOString()
+            }]);
+          } catch(e) {}
         }
 
-        // Also log to sales_log for compatibility
-        try {
-          await _sb.from('sales_log').insert([{
-            product_name: btn.dataset.name + ' — ' + btn.dataset.order,
-            product_price: parseInt(btn.dataset.total, 10) || 0,
-            actual_price: parseInt(btn.dataset.total, 10) || 0,
-            sold_at: new Date().toISOString()
-          }]);
-        } catch(e) {}
-        showToast('Pesanan ditandai lunas');
+        // Sebelumnya lunas, sekarang dibatalkan/menunggu lagi → kembalikan stok
+        if (oldStatus === 'paid' && newStatus !== 'paid' && order && Array.isArray(order.items)) {
+          for (var m = 0; m < order.items.length; m++) {
+            var it2 = order.items[m];
+            if (!it2 || !it2.id) continue;
+            var prod2 = allProducts.find(function(p){ return p.id === it2.id; }) || {};
+            var currentStock2 = typeof prod2.stock === 'number' ? prod2.stock : 0;
+            var restoredStock = currentStock2 + (parseInt(it2.qty, 10) || 1);
+            await _sb.from('products').update({ stock: restoredStock, status: 'available', available: true }).eq('id', it2.id);
+          }
+        }
+
+        sel.dataset.old = newStatus;
+        sel.disabled = false;
+        showToast('Status pesanan ' + sel.dataset.order + ' diubah menjadi ' + TRX_STATUS_LABELS2[newStatus]);
         loadTransactionsData();
         loadProductsTable();
       });
@@ -1855,6 +1883,44 @@
   // Tombol "Terapkan Filter"
   document.getElementById('btn-run-trx-filter').addEventListener('click', function() {
     loadTransactionsData();
+  });
+
+  // Tombol "Buat Data Sampel" — insert 3 transaksi contoh (Lunas/Menunggu/Dibatalkan) untuk uji filter
+  document.getElementById('btn-seed-sample-trx').addEventListener('click', async function() {
+    if (!confirm('Buat 3 transaksi contoh (Lunas, Menunggu, Dibatalkan) untuk uji coba filter?')) return;
+    var btn = this;
+    btn.disabled = true;
+    try {
+      var userRes = await _sb.auth.getUser();
+      var user = userRes.data && userRes.data.user;
+      if (!user) { showToast('Sesi login tidak ditemukan', 'error'); return; }
+
+      var stamp = Date.now().toString(36).toUpperCase();
+      var sampleItem = [{ id: 'sample-item', name: 'Produk Contoh', qty: 1 }];
+      var samples = [
+        { payment_status: 'paid',      label: 'Lunas',      order_number: 'SAMPLE-' + stamp + '-1' },
+        { payment_status: 'pending',   label: 'Menunggu',   order_number: 'SAMPLE-' + stamp + '-2' },
+        { payment_status: 'cancelled', label: 'Dibatalkan', order_number: 'SAMPLE-' + stamp + '-3' }
+      ].map(function(s) {
+        return {
+          user_id: user.id,
+          user_email: user.email,
+          user_name: 'Contoh (' + s.label + ')',
+          items: sampleItem,
+          total: 1000000,
+          payment_method: 'Contoh',
+          payment_status: s.payment_status,
+          order_number: s.order_number
+        };
+      });
+
+      var res = await _sb.from('transactions').insert(samples);
+      if (res.error) { showToast('Gagal buat data sampel: ' + res.error.message, 'error'); return; }
+      showToast('3 transaksi contoh berhasil dibuat');
+      loadTransactionsData();
+    } finally {
+      btn.disabled = false;
+    }
   });
 
   // Auto-hapus draft pending yang dibiarkan >24 jam tanpa pembayaran
@@ -1915,9 +1981,24 @@
         '<td class="hide-sm">' + joinDate + '</td>' +
         '<td class="hide-sm">' + trxCount + ' transaksi</td>' +
         '<td class="td-price hide-sm">' + formatRp(trxTotal) + '</td>' +
-        '<td style="text-align:right"><a href="mailto:' + escHtml(p.email||'') + '" class="btn btn-secondary btn-sm">Email</a></td>' +
+        '<td><div class="td-actions">' +
+          '<a href="mailto:' + escHtml(p.email||'') + '" class="btn btn-secondary btn-sm">Email</a>' +
+          '<button class="btn btn-danger btn-sm btn-delete-kons" data-id="' + escHtml(p.id) + '" data-name="' + escHtml(p.name || p.email || '') + '">Hapus</button>' +
+        '</div></td>' +
       '</tr>';
     }).join('');
+
+    tbody.querySelectorAll('.btn-delete-kons').forEach(function(btn) {
+      btn.addEventListener('click', async function() {
+        var id = btn.dataset.id;
+        if (!confirm('Hapus konsumen "' + btn.dataset.name + '"? Riwayat transaksinya tidak ikut terhapus.')) return;
+        btn.disabled = true;
+        var res = await _sb.from('profiles').delete().eq('id', id);
+        if (res.error) { showToast('Gagal: ' + res.error.message, 'error'); btn.disabled = false; return; }
+        showToast('Konsumen "' + btn.dataset.name + '" dihapus', 'info');
+        loadKonsumenData();
+      });
+    });
     } catch (err) {
       if (emptyEl) { emptyEl.style.display = ''; emptyEl.textContent = 'Gagal memuat konsumen: ' + (err && err.message ? err.message : 'koneksi terputus'); }
     } finally {
